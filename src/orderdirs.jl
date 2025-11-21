@@ -227,8 +227,11 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
     MIN_GRAD = 1.0e-4
     nmax0 = 8
 
+    x = @MVector zeros(vofi_real, NDIM)
     for i in 0:1, j in 0:1, k in 0:1
-        x = [x0[1] + i * h0[1], x0[2] + j * h0[2], x0[3] + k * h0[3]]
+        x[1] = x0[1] + i * h0[1]
+        x[2] = x0[2] + j * h0[2]
+        x[3] = x0[3] + k * h0[3]
         val = call_integrand(impl_func, par, x)
         f0[i + 1, j + 1, k + 1] = val
         if val > 0

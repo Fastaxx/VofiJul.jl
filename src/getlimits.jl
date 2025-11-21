@@ -88,9 +88,12 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
     hs = sum(sdir[i] * h0[i] for i in 1:NDIM)
     nbt = @MVector zeros(Int, NSE)
 
+    fse = @MVector zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
     for k in 0:1
-        fse = [f0[k + 1, 1], f0[k + 1, 2]]
-        fsum = sum(fse)
+        fse[1] = f0[k + 1, 1]
+        fse[2] = f0[k + 1, 2]
+        fsum = fse[1] + fse[2]
         if xfsp.isc[k + 2] == 0
             atleast1 = true
             nbt[k + 1] = 1
@@ -106,7 +109,9 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
                 down2up = -1
             end
         else
-            x1 = [x0[i] + k * pdir[i] * h0[i] for i in 1:NDIM]
+            for i in 1:NDIM
+                x1[i] = x0[i] + k * pdir[i] * h0[i]
+            end
             inters = vofi_get_side_intersections(impl_func, par, fse, x1, xfsp,
                                                  baser, sdir, hs, nsub, xfsp.isc[k + 2])
             nsub += inters
