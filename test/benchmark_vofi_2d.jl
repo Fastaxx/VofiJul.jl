@@ -58,7 +58,7 @@ function run_bench_2d(N=64)
     if HAVE_VOFINIT
         println("Benchmark (2D): Vofinit.getcc integrate over $(N)^2 cells")
         try
-            b2 = @benchmark integrate_with_vofinit_2d($N) samples=10
+            b2 = @benchmark integrate_with_vofinit_2d($N)
             println(b2)
             println("Allocation test: Vofinit integrate_with_vofinit_2d($(N))")
             @btime integrate_with_vofinit_2d($N)
