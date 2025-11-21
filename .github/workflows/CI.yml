@@ -20,7 +20,7 @@ jobs:
           - '1'    # Latest stable release
         os:
           - ubuntu-latest
-          - macOS-latest
+          - macos-latest
           - windows-latest
         arch:
           - x64
@@ -37,5 +37,4 @@ jobs:
       - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
