@@ -76,7 +76,7 @@ end
 
 function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, nsect, ndire)
     baser = base
-    basei = zeros(Int, length(base))  # Variable length, keep as-is
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -153,7 +153,7 @@ end
 
 function vofi_get_limits_3D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, tdir)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -226,7 +226,7 @@ end
 
 function vofi_check_plane(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsect, ndire)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -338,7 +338,7 @@ end
 
 function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsect, ndire, nsub_int)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -349,7 +349,8 @@ function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sd
     x1 = @MVector zeros(vofi_real, NDIM)
     x2 = @MVector zeros(vofi_real, NDIM)
     fse = @MVector zeros(vofi_real, NSE)
-    xfsl = deepcopy(xfs_pt)
+    xfsl = MinData()
+    copy!(xfsl, xfs_pt)
 
     for k in 0:1
         sign_change = true
@@ -403,7 +404,7 @@ end
 
 function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsub_int)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -414,7 +415,8 @@ function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdi
     x1 = @MVector zeros(vofi_real, NDIM)
     x2 = @MVector zeros(vofi_real, NDIM)
     fse = @MVector zeros(vofi_real, NSE)
-    xfsl = deepcopy(xfs_pt)
+    xfsl = MinData()
+    copy!(xfsl, xfs_pt)
 
     for k in 0:1
         sign_change = true

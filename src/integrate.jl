@@ -227,8 +227,10 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
     end
     hm = maximum(h0)
     xp = xs = xt = 0.0
-    xhpn = [LenData(), LenData()]
-    xhpo = [LenData(), LenData()]
+    xhpn1 = LenData()
+    xhpn2 = LenData()
+    xhpo1 = LenData()
+    xhpo2 = LenData()
     xfs = MinData()
     nsect = @MVector zeros(Int, NSEG)
     ndire = @MVector zeros(Int, NSEG)
@@ -276,14 +278,16 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
             end
             nsub_int = vofi_get_limits_inner_2D(impl_func, par, x1, h0, xfs, base_int,
                                                 pdir, sdir, nsect, ndire, sect_hexa)
-            xhpn = [LenData(), LenData()]
-            area = vofi_get_area(impl_func, par, x1, h0, base_int, pdir, sdir, xhpn,
+            # Reset xhpn structures for this iteration
+            xhpn1 = LenData()
+            xhpn2 = LenData()
+            area = vofi_get_area(impl_func, par, x1, h0, base_int, pdir, sdir, (xhpn1, xhpn2),
                                  centroid, nex[1], npt, nsub_int, nptmp, nsect, ndire)
             if nvis[1] > 0
-                tecplot_heights(x1, h0, pdir, sdir, xhpn)
+                tecplot_heights(x1, h0, pdir, sdir, (xhpn1, xhpn2))
             end
             if nex[2] > 0
-                vofi_end_points(impl_func, par, x1, h0, pdir, sdir, xhpn)
+                vofi_end_points(impl_func, par, x1, h0, pdir, sdir, (xhpn1, xhpn2))
                 if k == 1
                     xedge = @MVector zeros(vofi_real, NDIM)
                     for i in 1:NDIM
@@ -291,14 +295,16 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
                     end
                     nintmp = vofi_get_limits_edge_2D(impl_func, par, xedge, h0, xfs,
                                                      base_int, pdir, sdir, nsub_int)
-                    xhpo = [LenData(), LenData()]
+                    xhpo1 = LenData()
+                    xhpo2 = LenData()
                     vofi_edge_points(impl_func, par, xedge, h0, base_int, pdir, sdir,
-                                     xhpo, (xhpn[1].np0, xhpn[2].np0), nintmp, nsect, ndire)
-                    vofi_end_points(impl_func, par, xedge, h0, pdir, sdir, xhpo)
+                                     (xhpo1, xhpo2), (xhpn1.np0, xhpn2.np0), nintmp, nsect, ndire)
+                    vofi_end_points(impl_func, par, xedge, h0, pdir, sdir, (xhpo1, xhpo2))
                 elseif k > 1 && k < nexpt
                     surfer += vofi_interface_surface(impl_func, par, x0, h0, xmidt, pdir,
-                                                     sdir, tdir, xhpn, xhpo, k, nexpt, nvis[2])
-                    xhpo = deepcopy(xhpn)
+                                                     sdir, tdir, (xhpn1, xhpn2), (xhpo1, xhpo2), k, nexpt, nvis[2])
+                    copy!(xhpo1, xhpn1)
+                    copy!(xhpo2, xhpn2)
                 else
                     xedge = @MVector zeros(vofi_real, NDIM)
                     for i in 1:NDIM
@@ -306,12 +312,13 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
                     end
                     nintmp = vofi_get_limits_edge_2D(impl_func, par, xedge, h0, xfs,
                                                      base_int, pdir, sdir, nsub_int)
-                    xhpn_edge = [LenData(), LenData()]
+                    xhpn_edge1 = LenData()
+                    xhpn_edge2 = LenData()
                     vofi_edge_points(impl_func, par, xedge, h0, base_int, pdir, sdir,
-                                     xhpn_edge, (xhpo[1].np0, xhpo[2].np0), nintmp, nsect, ndire)
-                    vofi_end_points(impl_func, par, xedge, h0, pdir, sdir, xhpn_edge)
+                                     (xhpn_edge1, xhpn_edge2), (xhpo1.np0, xhpo2.np0), nintmp, nsect, ndire)
+                    vofi_end_points(impl_func, par, xedge, h0, pdir, sdir, (xhpn_edge1, xhpn_edge2))
                     surfer += vofi_interface_surface(impl_func, par, x0, h0, xmidt, pdir,
-                                                     sdir, tdir, xhpn_edge, xhpo, k + 1, nexpt, nvis[2])
+                                                     sdir, tdir, (xhpn_edge1, xhpn_edge2), (xhpo1, xhpo2), k + 1, nexpt, nvis[2])
                 end
             end
             quadv += ptw_ext[k] * area
