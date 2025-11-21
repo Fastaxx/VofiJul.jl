@@ -209,7 +209,7 @@ function vofi_edge_points(impl_func, par, x0, h0, base, pdir, sdir, xhp, npt, ns
     x20 = @MVector zeros(vofi_real, NDIM)
     x21 = @MVector zeros(vofi_real, NDIM)
     s0 = @MVector zeros(vofi_real, 4)
-    fse = zeros(vofi_real, NSE)
+    fse = @MVector zeros(vofi_real, NSE)
     hp = sum(pdir .* h0)
     hs = sum(sdir .* h0)
     it0 = 1
