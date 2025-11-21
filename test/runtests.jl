@@ -110,3 +110,14 @@ let
     exact = π * 0.4^2
     @test total_area ≈ exact atol=2e-2
 end
+
+# -----------------------------
+
+@testset "2D Vofi test" begin
+    include("vofi_test_2d.jl")
+end
+
+# -----------------------------
+@testset "3D Vofi test" begin
+    include("vofi_test_3d.jl")
+end

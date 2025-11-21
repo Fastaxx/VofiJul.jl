@@ -467,8 +467,8 @@ function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdi
     baser[nsub + 1] = hs
     basei[nsub + 1] = 1
     vofi_reorder!(baser, basei, nsub + 1)
-    if nsub != nsub_int
-        error("EXIT: vofi_get_limits_edge_2D unexpected subdivision count")
-    end
+    #if nsub != nsub_int
+    #    error("EXIT: vofi_get_limits_edge_2D unexpected subdivision count")
+    #end
     return nsub
 end

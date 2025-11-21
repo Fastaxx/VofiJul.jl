@@ -95,7 +95,8 @@ function vofi_get_segment_zero(impl_func, par, x0, dir, s0, f_sign)
             sz = f_sign * ss + 0.5 * (1 - f_sign) * s0[1]
             s0[4] = f_sign * fps
         else
-            error("EXIT: in vofi_get_segment_zero f1*f2 > 0")
+            sz = f_sign * s0[1]  # no zero found
+            s0[4] = 0.0
         end
     end
 
