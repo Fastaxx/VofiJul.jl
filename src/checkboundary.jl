@@ -212,7 +212,10 @@ function vofi_check_secter_face(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xf
 end
 
 function vofi_check_tertiary_side(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfs, fth)
-    ht = sum(tdir .* h0)
+    ht = zero(vofi_real)
+    for i in 1:NDIM
+        ht += tdir[i] * h0[i]
+    end
     for idx in 1:4
         xfs[idx].isc .= 0
     end

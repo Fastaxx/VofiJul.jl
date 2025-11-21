@@ -85,7 +85,10 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
     iside = 1
     isect = 2
     sign_sect = @MMatrix zeros(Int, NSE, NDIM)
-    hs = sum(sdir[i] * h0[i] for i in 1:NDIM)
+    hs = zero(vofi_real)
+    for i in 1:NDIM
+        hs += sdir[i] * h0[i]
+    end
     nbt = @MVector zeros(Int, NSE)
 
     fse = @MVector zeros(vofi_real, NSE)

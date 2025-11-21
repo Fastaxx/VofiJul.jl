@@ -30,7 +30,7 @@ function vofi_check_face_consistency(impl_func, par, x0, h0, dir1, dir2, fv)
         h1 += dir1[i] * h0[i]
         h2 += dir2[i] * h0[i]
     end
-    sumf = sum(fv)
+    sumf = fv[1] + fv[2] + fv[3] + fv[4]
     ipsc.consi = sumf > 0 ? 1 : sumf < 0 ? -1 : 0
     if ipsc.consi != 0
         dh1 = max(EPS_M * h1, EPS_ROOT)
