@@ -87,3 +87,26 @@ let
     exact = 4 / 3 * π * 0.4^3
     @test total_vol ≈ exact atol=2e-2
 end
+
+# simple Cartesian integration of a circle area
+function circle_sdf(x, _)
+    r = 0.4
+    return sqrt((x[1])^2 + (x[2])^2) - r
+end
+
+let
+    n = 20
+    h = 1.0 / n
+    xmin = -0.5
+    total_area = 0.0
+    cell_area = h^2
+    xex_tmp = zeros(Float64, 4)
+    for i in 0:n-1, j in 0:n-1
+        xin = [xmin + i * h, xmin + j * h]
+        cc = vofi_get_cc(circle_sdf, nothing, xin, [h, h], xex_tmp,
+                         [0, 0], [0, 0, 0, 0], [0, 0], 2)
+        total_area += cc * cell_area
+    end
+    exact = π * 0.4^2
+    @test total_area ≈ exact atol=2e-2
+end
