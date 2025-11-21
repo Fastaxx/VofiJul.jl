@@ -1,3 +1,57 @@
+function vofi_order_dirs_1D(impl_func, par, x0, h0, f0)
+    np0 = 0
+    nm0 = 0
+    icc = -1
+    nmax0 = 2
+    x1 = zeros(vofi_real, NDIM)
+    MIN_GRAD = 1.0e-4
+
+    x1[2] = x0[2]
+    x1[3] = x0[3]
+    
+    # Evaluate at the two endpoints
+    for i in 0:1
+        x1[1] = x0[1] + i * h0[1]
+        val = call_integrand(impl_func, par, x1)
+        f0[i + 1] = val
+        if val > 0
+            np0 += 1
+        elseif val < 0
+            nm0 += 1
+        end
+    end
+
+    # Compute simple gradient
+    fgrad = (f0[2] - f0[1]) / h0[1]
+    fgradmod = max(abs(fgrad), MIN_GRAD)
+    hm = 0.5 * h0[1]
+    fth = fgradmod * hm
+
+    # Check if all endpoints have same sign
+    if np0 * nm0 == 0
+        np0 = nm0 = 0
+        for i in 0:1
+            f0mod = abs(f0[i + 1])
+            if f0mod > fth
+                if f0[i + 1] < 0
+                    nm0 += 1
+                else
+                    np0 += 1
+                end
+            end
+        end
+        if nm0 == nmax0
+            return 1  # fully inside
+        elseif np0 == nmax0
+            return 0  # fully outside
+        end
+        # Near boundary
+        return nm0 > 0 ? 1 : 0
+    end
+
+    return -1  # interface crosses the cell
+end
+
 function vofi_order_dirs_2D(impl_func, par, x0, h0, pdir, sdir, f0, xfs_pt)
     n0 = zeros(Int, NSE, NSE)
     fc = zeros(vofi_real, NDIM, NDIM)

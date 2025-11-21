@@ -1,3 +1,80 @@
+function vofi_get_length_1D(impl_func, par, x0, h0, f0, xex, ncen)
+    # For 1D, we just need to find the zero crossing
+    # f0 has two values: f0[1] at x0[1] and f0[2] at x0[1] + h0[1]
+    
+    # If both have same sign, something went wrong - should have been caught earlier
+    if f0[1] * f0[2] >= 0
+        # No zero crossing - return full length if negative, 0 otherwise
+        if f0[1] < 0 && f0[2] < 0
+            if ncen > 0
+                xex[1] = x0[1] + 0.5 * h0[1]
+            end
+            return h0[1]
+        else
+            return 0.0
+        end
+    end
+    
+    # Find the zero crossing using linear interpolation as initial guess
+    # then refine with Newton-Raphson
+    frac = abs(f0[1]) / (abs(f0[1]) + abs(f0[2]))
+    x_zero = x0[1] + frac * h0[1]
+    
+    # Refine the zero crossing location
+    x1 = zeros(vofi_real, NDIM)
+    x1[2] = x0[2]
+    x1[3] = x0[3]
+    
+    # Newton-Raphson iteration
+    for iter in 1:MAX_ITER_ROOT
+        x1[1] = x_zero
+        f_val = call_integrand(impl_func, par, x1)
+        
+        if abs(f_val) < EPS_ROOT
+            break
+        end
+        
+        # Compute numerical derivative
+        h_eps = EPS_LOC * h0[1]
+        x1[1] = x_zero + h_eps
+        f_plus = call_integrand(impl_func, par, x1)
+        f_deriv = (f_plus - f_val) / h_eps
+        
+        if abs(f_deriv) < EPS_NOT0
+            break
+        end
+        
+        # Newton step
+        delta = -f_val / f_deriv
+        x_zero += delta
+        
+        # Keep within bounds
+        x_zero = max(x0[1], min(x0[1] + h0[1], x_zero))
+        
+        if abs(delta) < EPS_ROOT * h0[1]
+            break
+        end
+    end
+    
+    # The length inside (negative region) is from x0[1] to x_zero if f0[1] < 0
+    # or from x_zero to x0[1] + h0[1] if f0[2] < 0
+    if f0[1] < 0
+        length_inside = x_zero - x0[1]
+        if ncen > 0
+            # Centroid is at the midpoint of the negative region
+            xex[1] = x0[1] + 0.5 * length_inside
+        end
+    else
+        length_inside = (x0[1] + h0[1]) - x_zero
+        if ncen > 0
+            # Centroid is at the midpoint of the negative region
+            xex[1] = x_zero + 0.5 * length_inside
+        end
+    end
+    
+    return length_inside
+end
+
 function vofi_get_area(impl_func, par, x0, h0, base, pdir, sdir, xhp, centroid, ncen, npt, nsub, nptmp, nsect, ndire)
     x1 = zeros(vofi_real, NDIM)
     x20 = zeros(vofi_real, NDIM)
