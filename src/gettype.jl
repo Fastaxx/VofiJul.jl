@@ -1,5 +1,5 @@
 function vofi_get_cell_type(impl_func, par, xin, h0, ndim0)
-    x0 = zeros(vofi_real, NDIM)
+    x0 = @MVector zeros(vofi_real, NDIM)
     xin_vec = collect(xin)
     for i in 1:min(length(xin_vec), NDIM)
         x0[i] = vofi_real(xin_vec[i])
@@ -20,8 +20,8 @@ function vofi_get_cell_type(impl_func, par, xin, h0, ndim0)
 end
 
 function vofi_cell_type_1D(impl_func, par, x0, h0)
-    f0 = zeros(vofi_real, NSE)
-    x1 = zeros(vofi_real, NDIM)
+    f0 = @MVector zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
     np0 = 0
     nm0 = 0
     icc = -1
@@ -79,10 +79,10 @@ function vofi_cell_type_1D(impl_func, par, x0, h0)
 end
 
 function vofi_cell_type_2D(impl_func, par, x0, h0)
-    n0 = zeros(vofi_int, NSE, NSE)
-    f0 = zeros(vofi_real, NSE, NSE)
-    x1 = zeros(vofi_real, NDIM)
-    fgrad = zeros(vofi_real, NSE)
+    n0 = @MMatrix zeros(vofi_int, NSE, NSE)
+    f0 = @MMatrix zeros(vofi_real, NSE, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    fgrad = @MVector zeros(vofi_real, NSE)
     np0 = 0
     nm0 = 0
     icc = -1
@@ -149,10 +149,10 @@ function vofi_cell_type_2D(impl_func, par, x0, h0)
 end
 
 function vofi_cell_type_3D(impl_func, par, x0, h0)
-    n0 = zeros(vofi_int, NSE, NSE, NSE)
-    f0 = zeros(vofi_real, NSE, NSE, NSE)
-    x1 = zeros(vofi_real, NDIM)
-    fgrad = zeros(vofi_real, NDIM)
+    n0 = @MArray zeros(vofi_int, NSE, NSE, NSE)
+    f0 = @MArray zeros(vofi_real, NSE, NSE, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    fgrad = @MVector zeros(vofi_real, NDIM)
     np0 = 0
     nm0 = 0
     icc = -1

@@ -1,12 +1,12 @@
 function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
     xex .= 0
-    x0 = zeros(vofi_real, NDIM)
+    x0 = @MVector zeros(vofi_real, NDIM)
     hvec = pad_to_ndim(h0)
     if ndim0 == 1
         x0[1] = xin[1]
         x0[2] = 0.0
         x0[3] = 0.0
-        f0_1D = zeros(vofi_real, NSE)
+        f0_1D = @MVector zeros(vofi_real, NSE)
         icc = vofi_order_dirs_1D(impl_func, par, x0, hvec, f0_1D)
         if icc >= 0
             cc = vofi_real(icc)
@@ -23,9 +23,9 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
         x0[1] = xin[1]
         x0[2] = xin[2]
         xfsp = [MinData() for _ in 1:5]
-        pdir = zeros(vofi_real, NDIM)
-        sdir = zeros(vofi_real, NDIM)
-        f02D = zeros(vofi_real, NSE, NSE)
+        pdir = @MVector zeros(vofi_real, NDIM)
+        sdir = @MVector zeros(vofi_real, NDIM)
+        f02D = @MMatrix zeros(vofi_real, NSE, NSE)
         icc = vofi_order_dirs_2D(impl_func, par, x0, hvec, pdir, sdir, f02D, xfsp[1])
         if icc >= 0
             cc = vofi_real(icc)
@@ -36,12 +36,12 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
             end
             return cc
         end
-        base = zeros(vofi_real, NSEG + 1)
-        nsect = zeros(Int, NSEG)
-        ndire = zeros(Int, NSEG)
+        base = @MVector zeros(vofi_real, NSEG + 1)
+        nsect = @MVector zeros(Int, NSEG)
+        ndire = @MVector zeros(Int, NSEG)
         nsub = vofi_get_limits_2D(impl_func, par, x0, hvec, f02D, xfsp[1], base,
                                   pdir, sdir, nsect, ndire)
-        centroid = zeros(vofi_real, NDIM + 1)
+        centroid = @MVector zeros(vofi_real, NDIM + 1)
         xhp = [LenData(), LenData()]
         area = vofi_get_area(impl_func, par, x0, hvec, base, pdir, sdir, xhp,
                              centroid, nex[1], npt, nsub, xfsp[1].ipt, nsect, ndire)
@@ -65,10 +65,10 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
         x0[1] = xin[1]
         x0[2] = xin[2]
         x0[3] = xin[3]
-        pdir = zeros(vofi_real, NDIM)
-        sdir = zeros(vofi_real, NDIM)
-        tdir = zeros(vofi_real, NDIM)
-        f03D = zeros(vofi_real, NSE, NSE, NSE)
+        pdir = @MVector zeros(vofi_real, NDIM)
+        sdir = @MVector zeros(vofi_real, NDIM)
+        tdir = @MVector zeros(vofi_real, NDIM)
+        f03D = @MArray zeros(vofi_real, NSE, NSE, NSE)
         xfsp = [MinData() for _ in 1:5]
 
         icc = vofi_order_dirs_3D(impl_func, par, x0, hvec, pdir, sdir, tdir, f03D, xfsp)
@@ -82,9 +82,9 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
             return cc
         end
 
-        base = zeros(vofi_real, NSEG + 1)
+        base = @MVector zeros(vofi_real, NSEG + 1)
         nsub = vofi_get_limits_3D(impl_func, par, x0, hvec, f03D, xfsp, base, pdir, sdir, tdir)
-        centroid = zeros(vofi_real, NDIM + 1)
+        centroid = @MVector zeros(vofi_real, NDIM + 1)
         volume = vofi_get_volume(impl_func, par, x0, hvec, base, pdir, sdir, tdir, centroid,
                                  nex, npt, nsub, xfsp[5].ipt, nvis)
         cc = volume / (hvec[1] * hvec[2] * hvec[3])

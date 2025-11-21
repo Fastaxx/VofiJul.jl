@@ -1,5 +1,5 @@
 function vofi_get_segment_zero(impl_func, par, x0, dir, s0, f_sign)
-    xs = zeros(vofi_real, NDIM)
+    xs = @MVector zeros(vofi_real, NDIM)
     sl = 0.0
     sr = s0[1]
     not_conv = true

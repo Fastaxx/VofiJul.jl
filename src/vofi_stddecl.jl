@@ -25,6 +25,20 @@ const NSE = 2
 const NSEG = 10
 const NGLM = 20
 
+# Type aliases for StaticArrays with common sizes
+const SVec2 = SVector{NSE, vofi_real}
+const SVec3 = SVector{NDIM, vofi_real}
+const SVec4 = SVector{4, vofi_real}
+const SVecNSEG = SVector{NSEG, vofi_real}
+const SVecNSEGP1 = SVector{NSEG + 1, vofi_real}
+const SVecNGLMP2 = SVector{NGLM + 2, vofi_real}
+const SIVec2 = SVector{NSE, vofi_int}
+const SIVec3 = SVector{NDIM, vofi_int}
+const SIVecNSEG = SVector{NSEG, vofi_int}
+const SMat2x2 = SMatrix{NSE, NSE, vofi_real, NSE * NSE}
+const SMat3x3 = SMatrix{NDIM, NDIM, vofi_real, NDIM * NDIM}
+const SMat2x3 = SMatrix{NSE, NDIM, vofi_int, NSE * NDIM}
+
 @inline MIN(a, b) = min(a, b)
 @inline MAX(a, b) = max(a, b)
 @inline SGN0P(a) = a < 0 ? -1 : 1
@@ -49,10 +63,10 @@ macro CPSF(s, t, f, g)
 end
 
 mutable struct MinData
-    xval::Vector{vofi_real}
+    xval::MVector{NDIM, vofi_real}
     fval::vofi_real
     sval::vofi_real
-    isc::Vector{vofi_int}
+    isc::MVector{NDIM, vofi_int}
     ipt::vofi_int
     function MinData(xval, fval, sval, isc, ipt)
         return new(xval, fval, sval, isc, ipt)
@@ -64,10 +78,10 @@ function MinData(; xval = nothing,
                  sval = zero(vofi_real),
                  isc = nothing,
                  ipt = zero(vofi_int))
-    xv = xval === nothing ? zeros(vofi_real, NDIM) :
-         vofi_real.(collect(xval))
-    iscv = isc === nothing ? zeros(vofi_int, NDIM) :
-            vofi_int.(collect(isc))
+    xv = xval === nothing ? @MVector(zeros(vofi_real, NDIM)) :
+         MVector{NDIM, vofi_real}(xval)
+    iscv = isc === nothing ? @MVector(zeros(vofi_int, NDIM)) :
+            MVector{NDIM, vofi_int}(isc)
     return MinData(xv, fval, sval, iscv, ipt)
 end
 
@@ -88,9 +102,9 @@ DirData(; ind1 = 0, ind2 = 0, swt1 = 0, swt2 = 0, consi = 0) =
 mutable struct LenData
     np0::vofi_int
     f_sign::vofi_int
-    xt0::Vector{vofi_real}
-    ht0::Vector{vofi_real}
-    htp::Vector{vofi_real}
+    xt0::MVector{NGLM + 2, vofi_real}
+    ht0::MVector{NGLM + 2, vofi_real}
+    htp::MVector{NGLM + 2, vofi_real}
     function LenData(np0, f_sign, xt0, ht0, htp)
         length(xt0) == NGLM + 2 || throw(ArgumentError("xt0 must have NGLM + 2 entries"))
         length(ht0) == NGLM + 2 || throw(ArgumentError("ht0 must have NGLM + 2 entries"))
@@ -101,9 +115,9 @@ end
 
 function LenData(; np0 = 0, f_sign = 1,
                  xt0 = nothing, ht0 = nothing, htp = nothing)
-    xt = xt0 === nothing ? zeros(vofi_real, NGLM + 2) : vofi_real.(xt0)
-    ht = ht0 === nothing ? zeros(vofi_real, NGLM + 2) : vofi_real.(ht0)
-    hp = htp === nothing ? zeros(vofi_real, NGLM + 2) : vofi_real.(htp)
+    xt = xt0 === nothing ? @MVector(zeros(vofi_real, NGLM + 2)) : MVector{NGLM + 2, vofi_real}(xt0)
+    ht = ht0 === nothing ? @MVector(zeros(vofi_real, NGLM + 2)) : MVector{NGLM + 2, vofi_real}(ht0)
+    hp = htp === nothing ? @MVector(zeros(vofi_real, NGLM + 2)) : MVector{NGLM + 2, vofi_real}(htp)
     return LenData(np0, f_sign, xt, ht, hp)
 end
 

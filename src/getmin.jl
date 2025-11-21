@@ -1,5 +1,5 @@
 function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
-    xs = zeros(vofi_real, NDIM)
+    xs = @MVector zeros(vofi_real, NDIM)
     GRIS = 0.5 * (3.0 - sqrt(5.0))
     sign_change = 0
     igold = 1
@@ -214,21 +214,21 @@ function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
 end
 
 function vofi_get_face_min(impl_func, par, x0, h0, dir1, dir2, fve, xfs_pt, ipsc)
-    xs0 = zeros(vofi_real, NDIM)
-    xs1 = zeros(vofi_real, NDIM)
+    xs0 = @MVector zeros(vofi_real, NDIM)
+    xs1 = @MVector zeros(vofi_real, NDIM)
     x1f = similar(xs0)
     x1b = similar(xs0)
     x2f = similar(xs0)
     x2b = similar(xs0)
     res = similar(xs0)
     hes = similar(xs0)
-    rs0 = zeros(vofi_real, NDIM)
-    hs0 = ones(vofi_real, NDIM)
+    rs0 = @MVector zeros(vofi_real, NDIM)
+    hs0 = @MVector ones(vofi_real, NDIM)
     pcrs = similar(xs0)
     nmdr = similar(xs0)
     cndr = similar(xs0)
     ss = similar(xs0)
-    fse = zeros(vofi_real, NSE)
+    fse = @MVector zeros(vofi_real, NSE)
     eps2 = EPS_E * EPS_E
     dh = 1.0e-4
 

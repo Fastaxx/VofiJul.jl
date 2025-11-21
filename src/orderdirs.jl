@@ -3,7 +3,7 @@ function vofi_order_dirs_1D(impl_func, par, x0, h0, f0)
     nm0 = 0
     icc = -1
     nmax0 = 2
-    x1 = zeros(vofi_real, NDIM)
+    x1 = @MVector zeros(vofi_real, NDIM)
     MIN_GRAD = 1.0e-4
 
     x1[2] = x0[2]
@@ -53,16 +53,16 @@ function vofi_order_dirs_1D(impl_func, par, x0, h0, f0)
 end
 
 function vofi_order_dirs_2D(impl_func, par, x0, h0, pdir, sdir, f0, xfs_pt)
-    n0 = zeros(Int, NSE, NSE)
-    fc = zeros(vofi_real, NDIM, NDIM)
+    n0 = @MMatrix zeros(Int, NSE, NSE)
+    fc = @MMatrix zeros(vofi_real, NDIM, NDIM)
     hh = 0.5 .* h0
     np0 = 0
     nm0 = 0
     icc = -1
     check_dir = -1
     nmax0 = 4
-    x1 = zeros(vofi_real, NDIM)
-    fgrad = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    fgrad = @MVector zeros(vofi_real, NSE)
     MIN_GRAD = 1.0e-4
 
     x1[3] = x0[3]
@@ -135,7 +135,7 @@ function vofi_order_dirs_2D(impl_func, par, x0, h0, pdir, sdir, f0, xfs_pt)
         fc[2, j + 1] = call_integrand(impl_func, par, x1)
     end
 
-    nc = zeros(Int, NDIM, NDIM)
+    nc = @MMatrix zeros(Int, NDIM, NDIM)
     for i in 1:NDIM
         for j in 1:NDIM
             val = fc[i, j]
@@ -216,10 +216,10 @@ function vofi_order_dirs_2D(impl_func, par, x0, h0, pdir, sdir, f0, xfs_pt)
 end
 
 function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
-    fc = zeros(vofi_real, NDIM, NDIM, NDIM)
-    fd = zeros(vofi_real, NDIM, NDIM)
+    fc = @MArray zeros(vofi_real, NDIM, NDIM, NDIM)
+    fd = @MMatrix zeros(vofi_real, NDIM, NDIM)
     hh = 0.5 .* h0
-    fgrad = zeros(vofi_real, NDIM)
+    fgrad = @MVector zeros(vofi_real, NDIM)
     np0 = 0
     nm0 = 0
     icc = -1
@@ -249,7 +249,7 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
     fth = sqrt(2.0) * fgradmod * hm
 
     if np0 * nm0 == 0
-        n0 = zeros(Int, NSE, NSE, NSE)
+        n0 = @MArray zeros(Int, NSE, NSE, NSE)
         np0 = nm0 = 0
         for i in 0:1, j in 0:1, k in 0:1
             val = abs(f0[i + 1, j + 1, k + 1])
@@ -278,7 +278,7 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
     for i in 0:1, j in 0:1, k in 0:1
         fc[2 * i + 1, 2 * j + 1, 2 * k + 1] = f0[i + 1, j + 1, k + 1]
     end
-    x = zeros(vofi_real, NDIM)
+    x = @MVector zeros(vofi_real, NDIM)
     x[3] = x0[3] + hh[3]
     for i in 0:2:2, j in 0:2:2
         x[1] = x0[1] + i * hh[1]
@@ -375,8 +375,8 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
     vofi_check_tertiary_side(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp, fth)
 
     have = 0.5 * (h0[jp] + h0[js])
-    curv = zeros(vofi_real, NDIM)
-    sumf = zeros(vofi_real, NDIM)
+    curv = @MVector zeros(vofi_real, NDIM)
+    sumf = @MVector zeros(vofi_real, NDIM)
     pd1, pd2, pd3 = Int(pdir[1]), Int(pdir[2]), Int(pdir[3])
     sd1, sd2, sd3 = Int(sdir[1]), Int(sdir[2]), Int(sdir[3])
     td1, td2, td3 = Int(tdir[1]), Int(tdir[2]), Int(tdir[3])

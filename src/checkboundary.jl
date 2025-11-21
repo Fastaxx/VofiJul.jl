@@ -1,10 +1,10 @@
 function vofi_check_boundary_line(impl_func, par, x0, h0, f0, xfs_pt, n0)
-    nx = ones(vofi_int, NSE)
-    ny = ones(vofi_int, NSE)
+    nx = @MVector ones(vofi_int, NSE)
+    ny = @MVector ones(vofi_int, NSE)
     sidedirx = (1.0, 0.0, 0.0)
     sidediry = (0.0, 1.0, 0.0)
-    fse = zeros(vofi_real, NSE)
-    x1 = zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
     xfsl = MinData()
     check_dir = -1
 
@@ -58,14 +58,14 @@ function vofi_check_boundary_line(impl_func, par, x0, h0, f0, xfs_pt, n0)
 end
 
 function vofi_check_boundary_surface(impl_func, par, x0, h0, f0, xfs, n0)
-    nx = ones(vofi_int, NSE)
-    ny = ones(vofi_int, NSE)
-    nz = ones(vofi_int, NSE)
+    nx = @MVector ones(vofi_int, NSE)
+    ny = @MVector ones(vofi_int, NSE)
+    nz = @MVector ones(vofi_int, NSE)
     sidedirx = (1.0, 0.0, 0.0)
     sidediry = (0.0, 1.0, 0.0)
     sidedirz = (0.0, 0.0, 1.0)
-    fve = zeros(vofi_real, NVER)
-    x1 = zeros(vofi_real, NDIM)
+    fve = @MVector zeros(vofi_real, NVER)
+    x1 = @MVector zeros(vofi_real, NDIM)
     xfsl = MinData()
     check_dir = -1
 
@@ -147,8 +147,8 @@ function vofi_check_secondary_side(impl_func, par, x0, h0, pdir, sdir, f0, xfs_p
     for i in 1:NDIM
         hs += sdir[i] * h0[i]
     end
-    x1 = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
     xfsl = MinData()
 
     for k in 0:1
@@ -180,8 +180,8 @@ end
 
 function vofi_check_secter_face(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfs_pt, fth)
     xfs_pt.isc .= 0
-    x1 = zeros(vofi_real, NDIM)
-    fve = zeros(vofi_real, NVER)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    fve = @MVector zeros(vofi_real, NVER)
     xfsl = MinData()
 
     for m in 0:1
@@ -216,8 +216,8 @@ function vofi_check_tertiary_side(impl_func, par, x0, h0, pdir, sdir, tdir, f0, 
     for idx in 1:4
         xfs[idx].isc .= 0
     end
-    x1 = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
 
     for m in 0:1
         for n in 0:1

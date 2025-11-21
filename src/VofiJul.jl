@@ -1,5 +1,7 @@
 module VofiJul
 
+using StaticArrays
+
 include("vofi_stddecl.jl")
 include("vofi_gl_nodes.jl")
 include("vofi_gl_weights.jl")

@@ -53,9 +53,9 @@ function vofi_sector_new!(sign_sect, nsect, ndire, nsub, iside, isect, down2up)
 end
 
 function vofi_sector_old!(impl_func, par, x0, h0, base, pdir, sdir, nsect, ndire, nsub)
-    x1 = zeros(vofi_real, NDIM)
-    x2 = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x2 = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
     for i in 1:nsub
         mdpt = 0.5 * (base[i + 1] + base[i])
         for j in 1:NDIM
@@ -162,10 +162,10 @@ function vofi_get_limits_3D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
         hs += sdir[i] * h0[i]
         ht += tdir[i] * h0[i]
     end
-    xs = zeros(vofi_real, NDIM)
-    xp = zeros(vofi_real, NDIM)
-    xt = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    xs = @MVector zeros(vofi_real, NDIM)
+    xp = @MVector zeros(vofi_real, NDIM)
+    xt = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
     xfsl = MinData()
 
     for m in 0:1
@@ -235,9 +235,9 @@ function vofi_check_plane(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsec
         hs += sdir[i] * h0[i]
         xfs_pt.isc[i] = 0
     end
-    x1 = zeros(vofi_real, NDIM)
-    x2 = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x2 = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
     xfsl = MinData()
     nbt = zeros(Int, NSE)
     sign_sect = zeros(Int, NSE, NDIM)
@@ -346,9 +346,9 @@ function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sd
     for i in 1:NDIM
         hs += sdir[i] * h0[i]
     end
-    x1 = zeros(vofi_real, NDIM)
-    x2 = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x2 = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
     xfsl = deepcopy(xfs_pt)
 
     for k in 0:1
@@ -411,9 +411,9 @@ function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdi
     for i in 1:NDIM
         hs += sdir[i] * h0[i]
     end
-    x1 = zeros(vofi_real, NDIM)
-    x2 = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x2 = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
     xfsl = deepcopy(xfs_pt)
 
     for k in 0:1

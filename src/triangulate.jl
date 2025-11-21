@@ -1,11 +1,11 @@
 function vofi_interface_surface(impl_func, par, x0, h0, xt, pdir, sdir, tdir,
                                 xhpn, xhpo, k, nexpt, ipf)
-    xa = zeros(vofi_real, NDIM)
-    xb = zeros(vofi_real, NDIM)
-    xc = zeros(vofi_real, NDIM)
-    x1 = zeros(vofi_real, NDIM)
-    x2 = zeros(vofi_real, NDIM)
-    s0 = zeros(vofi_real, 4)
+    xa = @MVector zeros(vofi_real, NDIM)
+    xb = @MVector zeros(vofi_real, NDIM)
+    xc = @MVector zeros(vofi_real, NDIM)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x2 = @MVector zeros(vofi_real, NDIM)
+    s0 = @MVector zeros(vofi_real, 4)
     surfer = 0.0
     hp = sum(pdir .* h0)
     s0[1] = hp
@@ -147,9 +147,9 @@ function vofi_interface_surface(impl_func, par, x0, h0, xt, pdir, sdir, tdir,
 end
 
 function vofi_end_points(impl_func, par, x0, h0, pdir, sdir, xhhp)
-    x20 = zeros(vofi_real, NDIM)
-    x21 = zeros(vofi_real, NDIM)
-    s0 = zeros(vofi_real, 4)
+    x20 = @MVector zeros(vofi_real, NDIM)
+    x21 = @MVector zeros(vofi_real, NDIM)
+    s0 = @MVector zeros(vofi_real, 4)
     hp = sum(pdir .* h0)
     s0[1] = hp
     nseg = xhhp[2].np0 > 0 ? 2 : (xhhp[1].np0 > 0 ? 1 : 0)
@@ -205,10 +205,10 @@ function vofi_end_points(impl_func, par, x0, h0, pdir, sdir, xhhp)
 end
 
 function vofi_edge_points(impl_func, par, x0, h0, base, pdir, sdir, xhp, npt, nsub, nsect, ndire)
-    x1 = zeros(vofi_real, NDIM)
-    x20 = zeros(vofi_real, NDIM)
-    x21 = zeros(vofi_real, NDIM)
-    s0 = zeros(vofi_real, 4)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x20 = @MVector zeros(vofi_real, NDIM)
+    x21 = @MVector zeros(vofi_real, NDIM)
+    s0 = @MVector zeros(vofi_real, 4)
     fse = zeros(vofi_real, NSE)
     hp = sum(pdir .* h0)
     hs = sum(sdir .* h0)
