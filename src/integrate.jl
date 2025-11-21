@@ -1,0 +1,253 @@
+function vofi_get_area(impl_func, par, x0, h0, base, pdir, sdir, xhp, centroid, ncen, npt, nsub, nptmp, nsect, ndire)
+    x1 = zeros(vofi_real, NDIM)
+    x20 = zeros(vofi_real, NDIM)
+    x21 = zeros(vofi_real, NDIM)
+    s0 = zeros(vofi_real, 4)
+    fse = zeros(vofi_real, NSE)
+    area = 0.0
+    hp = 0.0
+    hs = 0.0
+    for i in 1:NDIM
+        x1[i] = x0[i] + pdir[i] * h0[i]
+        hp += pdir[i] * h0[i]
+        hs += sdir[i] * h0[i]
+    end
+    hm = maximum(h0)
+    xp = 0.0
+    xs = 0.0
+    it0 = 1
+    for ns in 1:nsub
+        ds = base[ns + 1] - base[ns]
+        mdpt = 0.5 * (base[ns + 1] + base[ns])
+        if nsect[ns] > 0
+            al = ds * hp
+            area += al
+            if ncen > 0
+                xp += 0.5 * hp * al
+                xs += mdpt * al
+            end
+        elseif nsect[ns] < 0
+            npts = Int(clamp(floor(18 * ds / hm) + 3, 3, 20))
+            npts = min(nptmp, npts)
+            if 3 <= npt[2] <= 20
+                npts = min(npt[2], npts)
+            end
+            if 3 <= npt[1] <= 20
+                npts = max(npt[1], npts)
+            end
+            xhp[it0].np0 = npts
+            f_sign = ndire[ns]
+            xhp[it0].f_sign = f_sign
+            j = npts - 3
+            pts = gauss_legendre_nodes(j + 3)
+            wts = gauss_legendre_weights(j + 3)
+
+            quada = 0.0
+            quadp = 0.0
+            quads = 0.0
+            a1 = a2 = b1 = b2 = 0.0
+            xhp[it0].ht0[1] = xhp[it0].htp[1] = 0.0
+            xhp[it0].xt0[1] = base[ns]
+            xhp[it0].xt0[npts + 2] = base[ns + 1]
+            xhp[it0].xt0[2] = mdpt + 0.5 * ds * pts[1]
+            for i in 1:NDIM
+                tmp = sdir[i] * xhp[it0].xt0[2]
+                x20[i] = x0[i] + tmp
+                x21[i] = x1[i] + tmp
+            end
+            fse[1] = call_integrand(impl_func, par, x20)
+            fse[2] = call_integrand(impl_func, par, x21)
+            s0[1] = hp
+            if abs(fse[1]) < abs(fse[2])
+                s0[2] = 0.0
+                s0[3] = fse[1]
+            else
+                s0[2] = hp
+                s0[3] = fse[2]
+            end
+            s0[4] = (fse[2] - fse[1]) / hp
+            for k in 1:npts
+                xhp[it0].ht0[k + 1] = vofi_get_segment_zero(impl_func, par, x20, pdir, s0, f_sign)
+                xhp[it0].htp[k + 1] = s0[4]
+                quada += wts[k] * xhp[it0].ht0[k + 1]
+                if ncen > 0
+                    quadp += wts[k] * 0.5 * xhp[it0].ht0[k + 1]^2
+                    quads += wts[k] * xhp[it0].ht0[k + 1] * xhp[it0].xt0[k + 1]
+                end
+                if k < npts
+                    xhp[it0].xt0[k + 2] = mdpt + 0.5 * ds * pts[k + 1]
+                    s0[2] = xhp[it0].ht0[k + 1]
+                    s0[4] = xhp[it0].htp[k + 1]
+                    if k > 1
+                        dxm1 = xhp[it0].xt0[k + 1] - xhp[it0].xt0[k]
+                        dxp1 = xhp[it0].xt0[k + 2] - xhp[it0].xt0[k + 1]
+                        a1 = (xhp[it0].ht0[k + 1] - xhp[it0].ht0[k]) / dxm1
+                        s0[2] += a1 * dxp1
+                        b1 = (xhp[it0].htp[k + 1] - xhp[it0].htp[k]) / dxm1
+                        s0[4] += b1 * dxp1
+                        if k > 2
+                            dxm2 = xhp[it0].xt0[k + 1] - xhp[it0].xt0[k - 1]
+                            dxp2 = xhp[it0].xt0[k + 2] - xhp[it0].xt0[k]
+                            s0[2] += (a1 - a2) * dxp1 * dxp2 / dxm2
+                            s0[4] += (b1 - b2) * dxp1 * dxp2 / dxm2
+                        end
+                    end
+                    if f_sign < 0
+                        s0[2] = hp - s0[2]
+                    end
+                    ratio = s0[2] / hp
+                    if ratio < NEAR_EDGE_RATIO
+                        s0[2] = 0.0
+                    elseif ratio > 1 - NEAR_EDGE_RATIO
+                        s0[2] = hp
+                    end
+                    for i in 1:NDIM
+                        x20[i] = x0[i] + sdir[i] * xhp[it0].xt0[k + 2]
+                        x21[i] = x20[i] + pdir[i] * s0[2]
+                    end
+                    s0[3] = call_integrand(impl_func, par, x21)
+                end
+                a2 = a1
+                b2 = b1
+            end
+            quada *= 0.5 * ds
+            area += quada
+            if ncen > 0 && quada > 0
+                quadp = 0.5 * ds * quadp / quada
+                quads = 0.5 * ds * quads / quada
+                if f_sign < 0
+                    quadp = hp - quadp
+                end
+                xp += quadp * quada
+                xs += quads * quada
+            end
+            it0 += 1
+        end
+    end
+    centroid[1] = xp
+    centroid[2] = xs
+    return area
+end
+
+function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
+                         centroid, nex, npt, nsub_ext, nptmp, nvis)
+    x1 = zeros(vofi_real, NDIM)
+    base_int = zeros(vofi_real, NSEG + 1)
+    xmidt = zeros(vofi_real, NGLM + 2)
+    volume = 0.0
+    surfer = 0.0
+    hp = hs = ht = 0.0
+    for i in 1:NDIM
+        hp += pdir[i] * h0[i]
+        hs += sdir[i] * h0[i]
+        ht += tdir[i] * h0[i]
+    end
+    hm = maximum(h0)
+    xp = xs = xt = 0.0
+    xhpn = [LenData(), LenData()]
+    xhpo = [LenData(), LenData()]
+    xfs = MinData()
+    nsect = zeros(Int, NSEG)
+    ndire = zeros(Int, NSEG)
+
+    for nt in 1:nsub_ext
+        dt = base_ext[nt + 1] - base_ext[nt]
+        mdpt = 0.5 * (base_ext[nt + 1] + base_ext[nt])
+        for i in 1:NDIM
+            x1[i] = x0[i] + tdir[i] * mdpt
+            xfs.isc[i] = 0
+        end
+        sect_hexa = vofi_check_plane(impl_func, par, x1, h0, xfs, base_int, pdir, sdir,
+                                     nsect, ndire)
+        if sect_hexa == 0
+            if nsect[1] == 1
+                vol = dt * hs * hp
+                volume += vol
+                if nex[1] > 0
+                    xp += 0.5 * hp * vol
+                    xs += 0.5 * hs * vol
+                    xt += mdpt * vol
+                end
+            end
+            continue
+        end
+
+        nexpt = min(20, Int(floor(18 * dt / hm)) + 3)
+        if 3 <= npt[4] <= 20
+            nexpt = min(npt[4], nexpt)
+        end
+        if 3 <= npt[3] <= 20
+            nexpt = max(npt[3], nexpt)
+        end
+        ptx_ext = gauss_legendre_nodes(nexpt)
+        ptw_ext = gauss_legendre_weights(nexpt)
+
+        quadv = quadp = quads = quadt = 0.0
+        xmidt[1] = base_ext[nt]
+        xmidt[nexpt + 2] = base_ext[nt + 1]
+        for k in 1:nexpt
+            xit = mdpt + 0.5 * dt * ptx_ext[k]
+            xmidt[k + 1] = xit
+            for i in 1:NDIM
+                x1[i] = x0[i] + tdir[i] * xit
+            end
+            nsub_int = vofi_get_limits_inner_2D(impl_func, par, x1, h0, xfs, base_int,
+                                                pdir, sdir, nsect, ndire, sect_hexa)
+            xhpn = [LenData(), LenData()]
+            area = vofi_get_area(impl_func, par, x1, h0, base_int, pdir, sdir, xhpn,
+                                 centroid, nex[1], npt, nsub_int, nptmp, nsect, ndire)
+            if nvis[1] > 0
+                tecplot_heights(x1, h0, pdir, sdir, xhpn)
+            end
+            if nex[2] > 0
+                vofi_end_points(impl_func, par, x1, h0, pdir, sdir, xhpn)
+                if k == 1
+                    xedge = zeros(vofi_real, NDIM)
+                    for i in 1:NDIM
+                        xedge[i] = x0[i] + tdir[i] * xmidt[1]
+                    end
+                    nintmp = vofi_get_limits_edge_2D(impl_func, par, xedge, h0, xfs,
+                                                     base_int, pdir, sdir, nsub_int)
+                    xhpo = [LenData(), LenData()]
+                    vofi_edge_points(impl_func, par, xedge, h0, base_int, pdir, sdir,
+                                     xhpo, (xhpn[1].np0, xhpn[2].np0), nintmp, nsect, ndire)
+                    vofi_end_points(impl_func, par, xedge, h0, pdir, sdir, xhpo)
+                elseif k > 1 && k < nexpt
+                    surfer += vofi_interface_surface(impl_func, par, x0, h0, xmidt, pdir,
+                                                     sdir, tdir, xhpn, xhpo, k, nexpt, nvis[2])
+                    xhpo = deepcopy(xhpn)
+                else
+                    xedge = zeros(vofi_real, NDIM)
+                    for i in 1:NDIM
+                        xedge[i] = x0[i] + tdir[i] * xmidt[nexpt + 2]
+                    end
+                    nintmp = vofi_get_limits_edge_2D(impl_func, par, xedge, h0, xfs,
+                                                     base_int, pdir, sdir, nsub_int)
+                    xhpn_edge = [LenData(), LenData()]
+                    vofi_edge_points(impl_func, par, xedge, h0, base_int, pdir, sdir,
+                                     xhpn_edge, (xhpo[1].np0, xhpo[2].np0), nintmp, nsect, ndire)
+                    vofi_end_points(impl_func, par, xedge, h0, pdir, sdir, xhpn_edge)
+                    surfer += vofi_interface_surface(impl_func, par, x0, h0, xmidt, pdir,
+                                                     sdir, tdir, xhpn_edge, xhpo, k + 1, nexpt, nvis[2])
+                end
+            end
+            quadv += ptw_ext[k] * area
+            quadp += ptw_ext[k] * centroid[1]
+            quads += ptw_ext[k] * centroid[2]
+            quadt += ptw_ext[k] * area * xit
+        end
+        quadv *= 0.5 * dt
+        volume += quadv
+        if nex[1] > 0
+            xp += 0.5 * dt * quadp
+            xs += 0.5 * dt * quads
+            xt += 0.5 * dt * quadt
+        end
+    end
+
+    centroid[1] = xp
+    centroid[2] = xs
+    centroid[3] = xt
+    centroid[4] = surfer
+    return volume
+end
