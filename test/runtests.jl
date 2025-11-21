@@ -25,6 +25,50 @@ function pos_func(x, _)
     return 1.0
 end
 
+# Test 1D functionality
+@test vofi_get_cell_type(neg_func, nothing, [0.0], [1.0], 1) == 1
+@test vofi_get_cell_type(pos_func, nothing, [0.0], [1.0], 1) == 0
+
+function line_func_1d(x, _)
+    return x[1] - 0.25
+end
+@test vofi_get_cell_type(line_func_1d, nothing, [0.0], [1.0], 1) == -1
+
+xex_1d = zeros(Float64, 4)
+cc_full_1d = vofi_get_cc(neg_func, nothing, [0.0], [1.0], xex_1d,
+                        [0, 0], [0, 0], [0, 0], 1)
+@test cc_full_1d ≈ 1.0
+
+xex_1d_cut = zeros(Float64, 4)
+cc_cut_1d = vofi_get_cc(line_func_1d, nothing, [0.0], [1.0], xex_1d_cut,
+                       [1, 0], [0, 0], [0, 0], 1)
+@test cc_cut_1d ≈ 0.25 atol=1e-6
+@test xex_1d_cut[1] ≈ 0.125 atol=1e-6
+
+# Test 1D integration over multiple cells (similar to 2D circle test)
+function line_sdf(x, _)
+    r = 0.4
+    return abs(x[1]) - r
+end
+
+let
+    n = 20
+    h = 1.0 / n
+    xmin = -0.5
+    total_length = 0.0
+    cell_length = h
+    xex_tmp = zeros(Float64, 4)
+    for i in 0:n-1
+        xin = [xmin + i * h]
+        cc = vofi_get_cc(line_sdf, nothing, xin, [h], xex_tmp,
+                         [0, 0], [0, 0], [0, 0], 1)
+        total_length += cc * cell_length
+    end
+    exact = 2 * 0.4  # Length of interval [-0.4, 0.4]
+    @test total_length ≈ exact atol=1e-2
+end
+
+# Test 2D functionality
 @test vofi_get_cell_type(neg_func, nothing, [0.0, 0.0], [1.0, 1.0], 2) == 1
 @test vofi_get_cell_type(pos_func, nothing, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], 3) == 0
 @test vofi_get_cell_type(plane_func, nothing, [0.0, 0.0], [1.0, 1.0], 2) == -1

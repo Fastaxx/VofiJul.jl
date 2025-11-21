@@ -5,14 +5,77 @@ function vofi_get_cell_type(impl_func, par, xin, h0, ndim0)
         x0[i] = vofi_real(xin_vec[i])
     end
     hvec = pad_to_ndim(h0)
-    if ndim0 == 2
+    if ndim0 == 1
+        x0[2] = 0.0
+        x0[3] = 0.0
+        return vofi_cell_type_1D(impl_func, par, x0, hvec)
+    elseif ndim0 == 2
         x0[3] = 0.0
         return vofi_cell_type_2D(impl_func, par, x0, hvec)
     elseif ndim0 == 3
         return vofi_cell_type_3D(impl_func, par, x0, hvec)
     else
-        throw(ArgumentError("ndim0 must be 2 or 3"))
+        throw(ArgumentError("ndim0 must be 1, 2, or 3"))
     end
+end
+
+function vofi_cell_type_1D(impl_func, par, x0, h0)
+    f0 = zeros(vofi_real, NSE)
+    x1 = zeros(vofi_real, NDIM)
+    np0 = 0
+    nm0 = 0
+    icc = -1
+    nmax0 = 2
+    MIN_GRAD = 1.0e-4
+    
+    # Set unused dimensions to zero
+    x1[2] = x0[2]
+    x1[3] = x0[3]
+    
+    # Evaluate at the two endpoints of the 1D cell
+    for i in 0:1
+        x1[1] = x0[1] + i * h0[1]
+        f = call_integrand(impl_func, par, x1)
+        f0[i + 1] = f
+        if f > 0.0
+            np0 += 1
+        elseif f < 0.0
+            nm0 += 1
+        end
+    end
+    
+    # Simple gradient estimate
+    fgrad = (f0[2] - f0[1]) / h0[1]
+    fgradmod = max(abs(fgrad), MIN_GRAD)
+    hm = 0.5 * h0[1]
+    fth = fgradmod * hm
+    
+    # Check if all endpoints are clearly inside or outside
+    if np0 * nm0 == 0
+        np0 = 0
+        nm0 = 0
+        for i in 0:1
+            f0mod = abs(f0[i + 1])
+            if f0mod > fth
+                if f0[i + 1] < 0.0
+                    nm0 += 1
+                else
+                    np0 += 1
+                end
+            end
+        end
+        if nm0 == nmax0
+            icc = 1  # fully inside
+        elseif np0 == nmax0
+            icc = 0  # fully outside
+        else
+            # Near boundary - default to inside if any point is negative
+            icc = nm0 > 0 ? 1 : 0
+        end
+    end
+    # else: the interface crosses the cell (different signs)
+    
+    return icc
 end
 
 function vofi_cell_type_2D(impl_func, par, x0, h0)

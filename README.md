@@ -1,6 +1,6 @@
 # VofiJul.jl
 
-Julia port of the [VOFI](https://github.com/vofi-dev/vofi) library for initializing volume fractions from an analytic implicit surface `f(x,y,z)=0`. Cells are treated as cuboids (2D or 3D), the reference phase is in the region `f < 0`, and integration follows the original VOFI algorithms.
+Julia port of the [VOFI](https://github.com/vofi-dev/vofi) library for initializing volume fractions from an analytic implicit surface `f(x,y,z)=0`. Cells are treated as line segments (1D), rectangles (2D), or cuboids (3D), the reference phase is in the region `f < 0`, and integration follows the original VOFI algorithms.
 
 ## Usage (preview)
 
@@ -10,15 +10,25 @@ using VofiJul
 # implicit function f(x) -> Float64 (negative inside)
 sphere_sdf(x, _) = sqrt(sum(abs2, x)) - 0.4
 
+# 3D example
 xex = zeros(Float64, 4)                      # centroid / interface info
 cc  = vofi_get_cc(sphere_sdf, nothing,
                   [-0.5, -0.5, -0.5],        # cell min corner
                   [1.0, 1.0, 1.0],           # cell sizes
                   xex, [1, 0], [0, 0, 0, 0], # centroids on
                   [0, 0], 3)                 # ndim=3
+
+# 1D example
+line_sdf(x, _) = x[1] - 0.25
+xex_1d = zeros(Float64, 4)
+cc_1d = vofi_get_cc(line_sdf, nothing,
+                    [0.0],                   # cell min corner
+                    [1.0],                   # cell size
+                    xex_1d, [1, 0], [0, 0],  # centroid on
+                    [0, 0], 1)               # ndim=1
 ```
 
-See `test/runtests.jl` for more examples, including a Cartesian integration of a sphere.
+See `test/runtests.jl` for more examples, including Cartesian integrations in 1D, 2D, and 3D.
 
 ## Main routines
 
@@ -28,12 +38,12 @@ See `test/runtests.jl` for more examples, including a Cartesian integration of a
 - `xin`: minimum corner of the cell.
 - `h0`: cell edge lengths.
 - `xex`: output buffer for centroid/interface data (length ≥ 4).
-- `nex`: flags to compute centroid/interface (2D length or 3D area); e.g. `[1,0]`.
+- `nex`: flags to compute centroid/interface (1D point, 2D length, or 3D area); e.g. `[1,0]`.
 - `npt`: user hints for quadrature points (can be zeros to auto-select).
 - `nvis`: Tecplot export flags (set to zeros to disable).
-- `ndim0`: 2 or 3 for the problem dimension.
+- `ndim0`: 1, 2, or 3 for the problem dimension.
 
-`vofi_get_type(impl_func, par, xin, h0, ndim0)`
+`vofi_get_cell_type(impl_func, par, xin, h0, ndim0)`
 - Same `impl_func`, `par`, `xin`, `h0`, `ndim0` as above.
 - Returns `1` if the cell is fully inside (f < 0), `0` if fully outside, `-1` if cut.
 

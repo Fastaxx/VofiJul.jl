@@ -2,7 +2,24 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
     xex .= 0
     x0 = zeros(vofi_real, NDIM)
     hvec = pad_to_ndim(h0)
-    if ndim0 == 2
+    if ndim0 == 1
+        x0[1] = xin[1]
+        x0[2] = 0.0
+        x0[3] = 0.0
+        f0_1D = zeros(vofi_real, NSE)
+        icc = vofi_order_dirs_1D(impl_func, par, x0, hvec, f0_1D)
+        if icc >= 0
+            cc = vofi_real(icc)
+            if icc > 0 && nex[1] > 0
+                xex[1] = x0[1] + 0.5 * hvec[1]
+            end
+            return cc
+        end
+        # Interface crosses the cell - compute the fraction
+        length_frac = vofi_get_length_1D(impl_func, par, x0, hvec, f0_1D, xex, nex[1])
+        cc = length_frac / hvec[1]
+        return cc
+    elseif ndim0 == 2
         x0[1] = xin[1]
         x0[2] = xin[2]
         xfsp = [MinData() for _ in 1:5]
@@ -84,6 +101,6 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
         end
         return cc
     else
-        throw(ArgumentError("ndim0 must be 2 or 3"))
+        throw(ArgumentError("ndim0 must be 1, 2, or 3"))
     end
 end
