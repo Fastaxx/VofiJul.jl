@@ -91,7 +91,7 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
     for k in 0:1
         fse = [f0[k + 1, 1], f0[k + 1, 2]]
         fsum = sum(fse)
-        if xfsp.isc[k + 1] == 0
+        if xfsp.isc[k + 2] == 0
             atleast1 = true
             nbt[k + 1] = 1
             iside = k + 1
@@ -108,7 +108,7 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
         else
             x1 = [x0[i] + k * pdir[i] * h0[i] for i in 1:NDIM]
             inters = vofi_get_side_intersections(impl_func, par, fse, x1, xfsp,
-                                                 baser, sdir, hs, nsub, xfsp.isc[k + 1])
+                                                 baser, sdir, hs, nsub, xfsp.isc[k + 2])
             nsub += inters
             for i in 1:inters
                 basei[nsub - i + 1] = 1
@@ -185,7 +185,7 @@ function vofi_get_limits_3D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
                                                      nsub, xfsp[l0].isc[2])
                 nsub += inters
                 for i in 1:inters
-                    basei[nsub - i] = 1
+                    basei[nsub - i + 1] = 1
                 end
                 for i in 1:NDIM
                     xt[i] = xs[i] + baser[nsub - 1] * tdir[i]
@@ -202,17 +202,17 @@ function vofi_get_limits_3D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
                                                         baser, sdir, tdir, nsub)
                     nsub += inters
                     for i in 1:inters
-                        basei[nsub - i] = 0
+                        basei[nsub - i + 1] = 0
                     end
                 end
             end
         end
-        if xfsp[5].isc[m + 1] != 0
+        if xfsp[5].isc[m + 2] != 0
             inters = vofi_get_ext_intersections(impl_func, par, xp, h0, xfsp[5],
                                                 baser, sdir, tdir, nsub)
             nsub += inters
             for i in 1:inters
-                basei[nsub - i] = 0
+                basei[nsub - i + 1] = 0
             end
         end
     end
@@ -263,7 +263,7 @@ function vofi_check_plane(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsec
                                                  baser, sdir, hs, nsub, xfsl.isc[k + 2])
             nsub += inters
             for i in 1:inters
-                basei[nsub - i] = 1
+                basei[nsub - i + 1] = 1
             end
             nbt[k + 1] = inters + 1
             if fse[1] < 0
@@ -290,7 +290,7 @@ function vofi_check_plane(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsec
                                                          nsub, xfsl.isc[k + 2])
                     nsub += inters
                     for i in 1:inters
-                        basei[nsub - i] = 1
+                        basei[nsub - i + 1] = 1
                     end
                     nbt[k + 1] = inters + 1
                     xfs_pt.sval = 0.5 * (baser[nsub - 1] + baser[nsub - 2])
@@ -364,7 +364,7 @@ function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sd
                                                  baser, sdir, hs, nsub, -1)
             nsub += inters
             for i in 1:inters
-                basei[nsub - i] = 1
+                basei[nsub - i + 1] = 1
             end
         elseif xfsl.isc[k + 2] == 1
             for i in 1:NDIM
@@ -385,7 +385,7 @@ function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sd
                 nsub += inters
                 xfs_pt.sval = 0.5 * (baser[nsub - 1] + baser[nsub - 2])
                 for i in 1:inters
-                    basei[nsub - i] = 1
+                    basei[nsub - i + 1] = 1
                 end
             end
         end
@@ -458,7 +458,7 @@ function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdi
                                                      baser, sdir, hs, nsub, 1)
                 nsub += inters
                 for i in 1:inters
-                    basei[nsub - i] = 1
+                    basei[nsub - i + 1] = 1
                 end
             end
         end

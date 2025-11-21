@@ -45,6 +45,26 @@ function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
     fp = 0.0
     sz = 0.0
     fz = 0.0
+    sc = 0.0
+    se = 0.0
+    sd = 0.0
+    tol = 0.0
+    t2 = 0.0
+    if fs > ft
+        fu = ft
+        ft = fs
+        fs = fu
+        su = st
+        st = ss
+        ss = su
+    end
+    se = st - sv
+    sd = ss - st
+    if fs < 0.0
+        not_conv = false
+    end
+
+    iter = 0
     while not_conv && iter < MAX_ITER_MINI
         sc = 0.5 * (sa + sb)
         tol = EPS_M * abs(ss) + EPS_LOC
@@ -69,8 +89,7 @@ function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
                 r = se
                 se = sd
             end
-            if abs(p) < abs(0.5 * q * r) && p > q * (sa - ss) &&
-               p < q * (sb - ss)
+            if abs(p) < abs(0.5 * q * r) && p > q * (sa - ss) && p < q * (sb - ss)
                 sd = p / q
                 su = ss + sd
                 if (su - sa) < t2 || (sb - su) < t2
@@ -118,32 +137,30 @@ function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
                     fb = fu
                 end
                 if fu <= ft || st == ss
-                    CPSF(sv, st, fv, ft)
-                    CPSF(st, su, ft, fu)
+                    @CPSF(sv, st, fv, ft)
+                    @CPSF(st, su, ft, fu)
                 elseif fu <= fv || sv == ss || sv == st
-                    CPSF(sv, su, fv, fu)
+                    @CPSF(sv, su, fv, fu)
                 end
             end
             if igold == 2 && not_conv
                 igold = 0
-                CPSF(sm, ss, fm, fs)
+                @CPSF(sm, ss, fm, fs)
                 if st < sm && abs(st - sa) > t2
-                    CPSF(sm, st, fm, ft)
+                    @CPSF(sm, st, fm, ft)
                 end
                 if sv < sm && abs(sv - sa) > t2
-                    CPSF(sm, sv, fm, fv)
+                    @CPSF(sm, sv, fm, fv)
                 end
-
-                CPSF(sp, ss, fp, fs)
+                @CPSF(sp, ss, fp, fs)
                 if st > sp && abs(st - sb) > t2
-                    CPSF(sp, st, fp, ft)
+                    @CPSF(sp, st, fp, ft)
                 end
                 if sv > sp && abs(sv - sb) > t2
-                    CPSF(sp, sv, fp, fv)
+                    @CPSF(sp, sv, fp, fv)
                 end
 
-                p = (sa - sm) * (fp * sb - fb * sp) +
-                    (sp - sb) * (fm * sa - fa * sm)
+                p = (sa - sm) * (fp * sb - fb * sp) + (sp - sb) * (fm * sa - fa * sm)
                 q = (sa - sm) * (fp - fb) + (sp - sb) * (fm - fa)
                 if q < 0.0
                     p = -p
@@ -174,7 +191,7 @@ function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
                             end
                         end
                         if iseca == 2
-                            CPSF(ss, su, fs, fu)
+                            @CPSF(ss, su, fs, fu)
                             sb = sz
                             sa = sz - 2.0 * tol
                         end
@@ -184,10 +201,15 @@ function vofi_get_segment_min(impl_func, par, x0, dir, fse, xfs_pt, s0, ifsign)
         end
     end
 
-    xfs_pt.xval .= xs
+    for i in 1:NDIM
+        xfs_pt.xval[i] = xs[i]
+    end
     xfs_pt.fval = ifsign * fs
     xfs_pt.sval = ss
-    sign_change = fs < 0.0 ? 1 : 0
+    if fs < 0.0
+        sign_change = 1
+    end
+
     return sign_change
 end
 

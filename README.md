@@ -20,6 +20,24 @@ cc  = vofi_get_cc(sphere_sdf, nothing,
 
 See `test/runtests.jl` for more examples, including a Cartesian integration of a sphere.
 
+## Main routines
+
+`vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)`
+- `impl_func`: implicit function; returns `f(x, par)` (negative inside the reference phase).
+- `par`: user data passed to `impl_func` (or `nothing`).
+- `xin`: minimum corner of the cell.
+- `h0`: cell edge lengths.
+- `xex`: output buffer for centroid/interface data (length ≥ 4).
+- `nex`: flags to compute centroid/interface (2D length or 3D area); e.g. `[1,0]`.
+- `npt`: user hints for quadrature points (can be zeros to auto-select).
+- `nvis`: Tecplot export flags (set to zeros to disable).
+- `ndim0`: 2 or 3 for the problem dimension.
+
+`vofi_get_type(impl_func, par, xin, h0, ndim0)`
+- Same `impl_func`, `par`, `xin`, `h0`, `ndim0` as above.
+- Returns `1` if the cell is fully inside (f < 0), `0` if fully outside, `-1` if cut.
+
+
 ## Installation
 
 The package is a pure Julia port; add it as a local dev package:
