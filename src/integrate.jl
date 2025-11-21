@@ -17,7 +17,13 @@ function vofi_get_length_1D(impl_func, par, x0, h0, f0, xex, ncen)
     
     # Find the zero crossing using linear interpolation as initial guess
     # then refine with Newton-Raphson
-    frac = abs(f0[1]) / (abs(f0[1]) + abs(f0[2]))
+    denom = abs(f0[1]) + abs(f0[2])
+    if denom < EPS_NOT0
+        # Both values very close to zero - use midpoint
+        frac = 0.5
+    else
+        frac = abs(f0[1]) / denom
+    end
     x_zero = x0[1] + frac * h0[1]
     
     # Refine the zero crossing location
