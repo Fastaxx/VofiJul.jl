@@ -1,5 +1,5 @@
 function vofi_get_side_intersections(impl_func, par, fse, x0, xfsp, base, dir, hl, nsub, isc)
-    s0 = zeros(vofi_real, 4)
+    s0 = @MVector zeros(vofi_real, 4)
     inters = 0
     if isc < 0
         f2neg = fse[1] < 0 ? 1 : -1
@@ -59,12 +59,12 @@ function vofi_get_ext_intersections(impl_func, par, x0, h0, xfsp, base, sdir, td
     pt0 = copy(xfsp.xval)
     pt1 = copy(pt0)
     pt2 = copy(pt0)
-    pt = zeros(vofi_real, NDIM)
-    mp0 = zeros(vofi_real, NDIM)
-    mp1 = zeros(vofi_real, NDIM)
-    ss = zeros(vofi_real, NDIM)
-    fse = zeros(vofi_real, NSE)
-    s0 = zeros(vofi_real, 4)
+    pt = @MVector zeros(vofi_real, NDIM)
+    mp0 = @MVector zeros(vofi_real, NDIM)
+    mp1 = @MVector zeros(vofi_real, NDIM)
+    ss = @MVector zeros(vofi_real, NDIM)
+    fse = @MVector zeros(vofi_real, NSE)
+    s0 = @MVector zeros(vofi_real, 4)
     inters = 0
     js = jt = 1
     f2neg = xfsp.fval < 0 ? 1 : -1

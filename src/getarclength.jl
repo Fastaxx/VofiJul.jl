@@ -4,11 +4,11 @@ function vofi_interface_length(impl_func, par, x0, h0, pdir, sdir, xhhp, ipf)
         hp += pdir[i] * h0[i]
     end
     arc = 0.0
-    s0 = zeros(vofi_real, 4)
+    s0 = @MVector zeros(vofi_real, 4)
     s0[1] = hp
     nseg = xhhp[min(end, 2)].np0 > 0 ? 2 : (xhhp[1].np0 > 0 ? 1 : 0)
-    x20 = zeros(vofi_real, NDIM)
-    x21 = zeros(vofi_real, NDIM)
+    x20 = @MVector zeros(vofi_real, NDIM)
+    x21 = @MVector zeros(vofi_real, NDIM)
     sqrt3 = sqrt(3.0)
 
     for it0 in 1:nseg

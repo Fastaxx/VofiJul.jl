@@ -65,7 +65,7 @@ function vofi_check_face_consistency(impl_func, par, x0, h0, dir1, dir2, fv)
             is2 = -1
         end
 
-        xx = zeros(vofi_real, NDIM)
+        xx = @MVector zeros(vofi_real, NDIM)
         x1 = similar(xx)
         x2 = similar(xx)
         for i in 1:NDIM
@@ -114,7 +114,7 @@ end
 
 function vofi_check_edge_consistency(impl_func, par, fse, x0, base, dir, h0, nsub)
     xs = similar(x0)
-    s0 = zeros(vofi_real, 4)
+    s0 = @MVector zeros(vofi_real, 4)
     dh = max(EPS_M * h0, EPS_ROOT)
     if abs(fse[1]) < abs(fse[2])
         for i in 1:NDIM

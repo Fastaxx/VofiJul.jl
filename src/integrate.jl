@@ -27,7 +27,7 @@ function vofi_get_length_1D(impl_func, par, x0, h0, f0, xex, ncen)
     x_zero = x0[1] + frac * h0[1]
     
     # Refine the zero crossing location
-    x1 = zeros(vofi_real, NDIM)
+    x1 = @MVector zeros(vofi_real, NDIM)
     x1[2] = x0[2]
     x1[3] = x0[3]
     
@@ -82,11 +82,11 @@ function vofi_get_length_1D(impl_func, par, x0, h0, f0, xex, ncen)
 end
 
 function vofi_get_area(impl_func, par, x0, h0, base, pdir, sdir, xhp, centroid, ncen, npt, nsub, nptmp, nsect, ndire)
-    x1 = zeros(vofi_real, NDIM)
-    x20 = zeros(vofi_real, NDIM)
-    x21 = zeros(vofi_real, NDIM)
-    s0 = zeros(vofi_real, 4)
-    fse = zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    x20 = @MVector zeros(vofi_real, NDIM)
+    x21 = @MVector zeros(vofi_real, NDIM)
+    s0 = @MVector zeros(vofi_real, 4)
+    fse = @MVector zeros(vofi_real, NSE)
     area = 0.0
     hp = 0.0
     hs = 0.0
@@ -214,9 +214,9 @@ end
 
 function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
                          centroid, nex, npt, nsub_ext, nptmp, nvis)
-    x1 = zeros(vofi_real, NDIM)
-    base_int = zeros(vofi_real, NSEG + 1)
-    xmidt = zeros(vofi_real, NGLM + 2)
+    x1 = @MVector zeros(vofi_real, NDIM)
+    base_int = @MVector zeros(vofi_real, NSEG + 1)
+    xmidt = @MVector zeros(vofi_real, NGLM + 2)
     volume = 0.0
     surfer = 0.0
     hp = hs = ht = 0.0
@@ -230,8 +230,8 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
     xhpn = [LenData(), LenData()]
     xhpo = [LenData(), LenData()]
     xfs = MinData()
-    nsect = zeros(Int, NSEG)
-    ndire = zeros(Int, NSEG)
+    nsect = @MVector zeros(Int, NSEG)
+    ndire = @MVector zeros(Int, NSEG)
 
     for nt in 1:nsub_ext
         dt = base_ext[nt + 1] - base_ext[nt]
@@ -285,7 +285,7 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
             if nex[2] > 0
                 vofi_end_points(impl_func, par, x1, h0, pdir, sdir, xhpn)
                 if k == 1
-                    xedge = zeros(vofi_real, NDIM)
+                    xedge = @MVector zeros(vofi_real, NDIM)
                     for i in 1:NDIM
                         xedge[i] = x0[i] + tdir[i] * xmidt[1]
                     end
@@ -300,7 +300,7 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
                                                      sdir, tdir, xhpn, xhpo, k, nexpt, nvis[2])
                     xhpo = deepcopy(xhpn)
                 else
-                    xedge = zeros(vofi_real, NDIM)
+                    xedge = @MVector zeros(vofi_real, NDIM)
                     for i in 1:NDIM
                         xedge[i] = x0[i] + tdir[i] * xmidt[nexpt + 2]
                     end
