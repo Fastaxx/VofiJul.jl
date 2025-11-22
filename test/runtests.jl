@@ -165,6 +165,22 @@ end
 @testset "3D Vofi test" begin
     include("vofi_test_3d.jl")
 end
+# Test 4D functionality
+function neg_func_4d(x, _)
+    return -1.0
+end
+
+function pos_func_4d(x, _)
+    return 1.0
+end
+
+function hyperplane_func_4d(x, _)
+    return x[1] + x[2] + x[3] + x[4] - 2.0
+end
+
+@test vofi_get_cell_type(neg_func_4d, nothing, [0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0], 4) == 1
+@test vofi_get_cell_type(pos_func_4d, nothing, [0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0], 4) == 0
+@test vofi_get_cell_type(hyperplane_func_4d, nothing, [0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0], 4) == -1
 
 # -----------------------------
 

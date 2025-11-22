@@ -254,3 +254,136 @@ function vofi_check_tertiary_side(impl_func, par, x0, h0, pdir, sdir, tdir, f0, 
     end
     return nothing
 end
+
+function vofi_check_boundary_hypersurface(impl_func, par, x0::Vector{Float64}, h0::Vector{Float64}, f0::Array{Float64, 4}, xfs, n0::Array{Int64, 4})
+    # For 4D hypercube, we have 8 cubic (3D) faces
+    # Each face is defined by fixing one coordinate at 0 or 1
+    nx = ones(Int, 2)
+    ny = ones(Int, 2)
+    nz = ones(Int, 2)
+    nw = ones(Int, 2)
+    
+    sidedirx = [1.0, 0.0, 0.0, 0.0]
+    sidediry = [0.0, 1.0, 0.0, 0.0]
+    sidedirz = [0.0, 0.0, 1.0, 0.0]
+    sidedirw = [0.0, 0.0, 0.0, 1.0]
+    
+    fcube = Array{Float64}(undef, 2, 2, 2)  # 8 vertices of a cube face
+    x1 = Vector{Float64}(undef, 4)
+    check_dir = -1
+    
+    # Check faces perpendicular to x-axis (i fixed)
+    for i in 0:1
+        if nx[i + 1] > 0
+            nx[i + 1] = 0
+            for j in 0:1, k in 0:1, l in 0:1
+                if n0[i + 1, j + 1, k + 1, l + 1] > 0
+                    # Extract the cubic face values
+                    for jj in 0:1, kk in 0:1, ll in 0:1
+                        fcube[jj + 1, kk + 1, ll + 1] = f0[i + 1, jj + 1, kk + 1, ll + 1]
+                    end
+                    
+                    # Set position on the face
+                    x1[1] = x0[1] + i * h0[1]
+                    x1[2] = x0[2]
+                    x1[3] = x0[3]
+                    x1[4] = x0[4]
+                    
+                    # Check if this face has sign changes
+                    if has_sign_change_3d(fcube)
+                        check_dir = 0
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    # Check faces perpendicular to y-axis (j fixed)
+    for j in 0:1
+        if ny[j + 1] > 0
+            ny[j + 1] = 0
+            for i in 0:1, k in 0:1, l in 0:1
+                if n0[i + 1, j + 1, k + 1, l + 1] > 0
+                    for ii in 0:1, kk in 0:1, ll in 0:1
+                        fcube[ii + 1, kk + 1, ll + 1] = f0[ii + 1, j + 1, kk + 1, ll + 1]
+                    end
+                    
+                    x1[1] = x0[1]
+                    x1[2] = x0[2] + j * h0[2]
+                    x1[3] = x0[3]
+                    x1[4] = x0[4]
+                    
+                    if has_sign_change_3d(fcube)
+                        check_dir = 0
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    # Check faces perpendicular to z-axis (k fixed)
+    for k in 0:1
+        if nz[k + 1] > 0
+            nz[k + 1] = 0
+            for i in 0:1, j in 0:1, l in 0:1
+                if n0[i + 1, j + 1, k + 1, l + 1] > 0
+                    for ii in 0:1, jj in 0:1, ll in 0:1
+                        fcube[ii + 1, jj + 1, ll + 1] = f0[ii + 1, jj + 1, k + 1, ll + 1]
+                    end
+                    
+                    x1[1] = x0[1]
+                    x1[2] = x0[2]
+                    x1[3] = x0[3] + k * h0[3]
+                    x1[4] = x0[4]
+                    
+                    if has_sign_change_3d(fcube)
+                        check_dir = 0
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    # Check faces perpendicular to w-axis (l fixed)
+    for l in 0:1
+        if nw[l + 1] > 0
+            nw[l + 1] = 0
+            for i in 0:1, j in 0:1, k in 0:1
+                if n0[i + 1, j + 1, k + 1, l + 1] > 0
+                    for ii in 0:1, jj in 0:1, kk in 0:1
+                        fcube[ii + 1, jj + 1, kk + 1] = f0[ii + 1, jj + 1, kk + 1, l + 1]
+                    end
+                    
+                    x1[1] = x0[1]
+                    x1[2] = x0[2]
+                    x1[3] = x0[3]
+                    x1[4] = x0[4] + l * h0[4]
+                    
+                    if has_sign_change_3d(fcube)
+                        check_dir = 0
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    return check_dir
+end
+
+# Helper function to check if a 3D cube has sign changes
+function has_sign_change_3d(fcube::Array{Float64, 3})
+    np = 0
+    nm = 0
+    for i in 1:2, j in 1:2, k in 1:2
+        if fcube[i, j, k] > 0
+            np += 1
+        elseif fcube[i, j, k] < 0
+            nm += 1
+        end
+    end
+    return np > 0 && nm > 0
+end
