@@ -22,11 +22,11 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
     elseif ndim0 == 2
         x0[1] = xin[1]
         x0[2] = xin[2]
-        xfsp = [MinData() for _ in 1:5]
+        xfsp_single = MinData()  # Only need one for 2D
         pdir = @MVector zeros(vofi_real, NDIM)
         sdir = @MVector zeros(vofi_real, NDIM)
         f02D = @MMatrix zeros(vofi_real, NSE, NSE)
-        icc = vofi_order_dirs_2D(impl_func, par, x0, hvec, pdir, sdir, f02D, xfsp[1])
+        icc = vofi_order_dirs_2D(impl_func, par, x0, hvec, pdir, sdir, f02D, xfsp_single)
         if icc >= 0
             cc = vofi_real(icc)
             if icc > 0 && nex[1] > 0
@@ -39,15 +39,16 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
         base = @MVector zeros(vofi_real, NSEG + 1)
         nsect = @MVector zeros(Int, NSEG)
         ndire = @MVector zeros(Int, NSEG)
-        nsub = vofi_get_limits_2D(impl_func, par, x0, hvec, f02D, xfsp[1], base,
+        nsub = vofi_get_limits_2D(impl_func, par, x0, hvec, f02D, xfsp_single, base,
                                   pdir, sdir, nsect, ndire)
         centroid = @MVector zeros(vofi_real, NDIM + 1)
-        xhp = [LenData(), LenData()]
-        area = vofi_get_area(impl_func, par, x0, hvec, base, pdir, sdir, xhp,
-                             centroid, nex[1], npt, nsub, xfsp[1].ipt, nsect, ndire)
+        xhp1 = LenData()
+        xhp2 = LenData()
+        area = vofi_get_area(impl_func, par, x0, hvec, base, pdir, sdir, (xhp1, xhp2),
+                             centroid, nex[1], npt, nsub, xfsp_single.ipt, nsect, ndire)
         cc = area / (hvec[1] * hvec[2])
         if nvis[1] > 0
-            tecplot_heights(x0, hvec, pdir, sdir, xhp)
+            tecplot_heights(x0, hvec, pdir, sdir, (xhp1, xhp2))
         end
         if nex[1] > 0 && area > 0
             centroid[1] /= area
@@ -58,7 +59,7 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
             end
         end
         if nex[2] > 0
-            xex[4] = vofi_interface_length(impl_func, par, x0, hvec, pdir, sdir, xhp, nvis[2])
+            xex[4] = vofi_interface_length(impl_func, par, x0, hvec, pdir, sdir, (xhp1, xhp2), nvis[2])
         end
         return cc
     elseif ndim0 == 3
@@ -69,7 +70,13 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
         sdir = @MVector zeros(vofi_real, NDIM)
         tdir = @MVector zeros(vofi_real, NDIM)
         f03D = @MArray zeros(vofi_real, NSE, NSE, NSE)
-        xfsp = [MinData() for _ in 1:5]
+        # Pre-allocate 5 MinData structs without array allocation
+        xfsp1 = MinData()
+        xfsp2 = MinData()
+        xfsp3 = MinData()
+        xfsp4 = MinData()
+        xfsp5 = MinData()
+        xfsp = (xfsp1, xfsp2, xfsp3, xfsp4, xfsp5)
 
         icc = vofi_order_dirs_3D(impl_func, par, x0, hvec, pdir, sdir, tdir, f03D, xfsp)
         if icc >= 0

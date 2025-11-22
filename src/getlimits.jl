@@ -76,7 +76,7 @@ end
 
 function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, nsect, ndire)
     baser = base
-    basei = zeros(Int, length(base))  # Variable length, keep as-is
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -85,12 +85,18 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
     iside = 1
     isect = 2
     sign_sect = @MMatrix zeros(Int, NSE, NDIM)
-    hs = sum(sdir[i] * h0[i] for i in 1:NDIM)
+    hs = zero(vofi_real)
+    for i in 1:NDIM
+        hs += sdir[i] * h0[i]
+    end
     nbt = @MVector zeros(Int, NSE)
 
+    fse = @MVector zeros(vofi_real, NSE)
+    x1 = @MVector zeros(vofi_real, NDIM)
     for k in 0:1
-        fse = [f0[k + 1, 1], f0[k + 1, 2]]
-        fsum = sum(fse)
+        fse[1] = f0[k + 1, 1]
+        fse[2] = f0[k + 1, 2]
+        fsum = fse[1] + fse[2]
         if xfsp.isc[k + 2] == 0
             atleast1 = true
             nbt[k + 1] = 1
@@ -106,7 +112,9 @@ function vofi_get_limits_2D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
                 down2up = -1
             end
         else
-            x1 = [x0[i] + k * pdir[i] * h0[i] for i in 1:NDIM]
+            for i in 1:NDIM
+                x1[i] = x0[i] + k * pdir[i] * h0[i]
+            end
             inters = vofi_get_side_intersections(impl_func, par, fse, x1, xfsp,
                                                  baser, sdir, hs, nsub, xfsp.isc[k + 2])
             nsub += inters
@@ -153,7 +161,7 @@ end
 
 function vofi_get_limits_3D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, tdir)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -226,7 +234,7 @@ end
 
 function vofi_check_plane(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsect, ndire)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -338,7 +346,7 @@ end
 
 function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsect, ndire, nsub_int)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -349,7 +357,8 @@ function vofi_get_limits_inner_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sd
     x1 = @MVector zeros(vofi_real, NDIM)
     x2 = @MVector zeros(vofi_real, NDIM)
     fse = @MVector zeros(vofi_real, NSE)
-    xfsl = deepcopy(xfs_pt)
+    xfsl = MinData()
+    copy!(xfsl, xfs_pt)
 
     for k in 0:1
         sign_change = true
@@ -403,7 +412,7 @@ end
 
 function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsub_int)
     baser = base
-    basei = zeros(Int, length(base))
+    basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array
     baser[1] = 0.0
     basei[1] = 1
     nsub = 1
@@ -414,7 +423,8 @@ function vofi_get_limits_edge_2D(impl_func, par, x0, h0, xfs_pt, base, pdir, sdi
     x1 = @MVector zeros(vofi_real, NDIM)
     x2 = @MVector zeros(vofi_real, NDIM)
     fse = @MVector zeros(vofi_real, NSE)
-    xfsl = deepcopy(xfs_pt)
+    xfsl = MinData()
+    copy!(xfsl, xfs_pt)
 
     for k in 0:1
         sign_change = true

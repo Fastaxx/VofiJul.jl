@@ -130,6 +130,15 @@ Base.copy!(dest::MinData, src::MinData) = begin
     dest
 end
 
+Base.copy!(dest::LenData, src::LenData) = begin
+    dest.np0 = src.np0
+    dest.f_sign = src.f_sign
+    dest.xt0 .= src.xt0
+    dest.ht0 .= src.ht0
+    dest.htp .= src.htp
+    dest
+end
+
 @inline function call_integrand(func::Integrand, par, coords::AbstractVector)
     if par === nothing && applicable(func, coords)
         return func(coords)

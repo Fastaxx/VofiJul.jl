@@ -227,8 +227,11 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
     MIN_GRAD = 1.0e-4
     nmax0 = 8
 
+    x = @MVector zeros(vofi_real, NDIM)
     for i in 0:1, j in 0:1, k in 0:1
-        x = [x0[1] + i * h0[1], x0[2] + j * h0[2], x0[3] + k * h0[3]]
+        x[1] = x0[1] + i * h0[1]
+        x[2] = x0[2] + j * h0[2]
+        x[3] = x0[3] + k * h0[3]
         val = call_integrand(impl_func, par, x)
         f0[i + 1, j + 1, k + 1] = val
         if val > 0
@@ -244,7 +247,8 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
                        (f0[2, 1, 2] + f0[1, 1, 2] + f0[2, 1, 1] + f0[1, 1, 1])) / h0[2]
     fgrad[3] = 0.25 * ((f0[2, 2, 2] + f0[2, 1, 2] + f0[1, 2, 2] + f0[1, 1, 2]) -
                        (f0[2, 2, 1] + f0[2, 1, 1] + f0[1, 2, 1] + f0[1, 1, 1])) / h0[3]
-    fgradmod = max(sqrt(sum(abs2, fgrad)), MIN_GRAD)
+    fgradsq = fgrad[1]^2 + fgrad[2]^2 + fgrad[3]^2
+    fgradmod = max(sqrt(fgradsq), MIN_GRAD)
     hm = maximum(hh)
     fth = sqrt(2.0) * fgradmod * hm
 
@@ -402,7 +406,13 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
         tmp = sqrt((fx^2 + fy^2)^3)
         curv[k] = abs(fxx * fy^2 - 2 * fx * fy * fxy + fx^2 * fyy) / tmp
     end
-    Kappa = sum(sumf .* curv) / sum(sumf)
+    sumf_curv = zero(vofi_real)
+    sumf_total = zero(vofi_real)
+    for k in 1:NDIM
+        sumf_curv += sumf[k] * curv[k]
+        sumf_total += sumf[k]
+    end
+    Kappa = sumf_curv / sumf_total
     a0, a1, a2, a3 = 2.34607, 16.5515, -5.53054, 54.0866
     tmp = a0 + Kappa * (a1 + Kappa * (a2 + a3 * Kappa))
     npt = Int(ceil(tmp))

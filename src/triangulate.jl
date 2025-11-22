@@ -7,7 +7,10 @@ function vofi_interface_surface(impl_func, par, x0, h0, xt, pdir, sdir, tdir,
     x2 = @MVector zeros(vofi_real, NDIM)
     s0 = @MVector zeros(vofi_real, 4)
     surfer = 0.0
-    hp = sum(pdir .* h0)
+    hp = zero(vofi_real)
+    for i in 1:NDIM
+        hp += pdir[i] * h0[i]
+    end
     s0[1] = hp
     km = k - 1
     if k == 2 || k > nexpt
@@ -150,7 +153,10 @@ function vofi_end_points(impl_func, par, x0, h0, pdir, sdir, xhhp)
     x20 = @MVector zeros(vofi_real, NDIM)
     x21 = @MVector zeros(vofi_real, NDIM)
     s0 = @MVector zeros(vofi_real, 4)
-    hp = sum(pdir .* h0)
+    hp = zero(vofi_real)
+    for i in 1:NDIM
+        hp += pdir[i] * h0[i]
+    end
     s0[1] = hp
     nseg = xhhp[2].np0 > 0 ? 2 : (xhhp[1].np0 > 0 ? 1 : 0)
     for it0 in 1:nseg
@@ -210,8 +216,12 @@ function vofi_edge_points(impl_func, par, x0, h0, base, pdir, sdir, xhp, npt, ns
     x21 = @MVector zeros(vofi_real, NDIM)
     s0 = @MVector zeros(vofi_real, 4)
     fse = @MVector zeros(vofi_real, NSE)
-    hp = sum(pdir .* h0)
-    hs = sum(sdir .* h0)
+    hp = zero(vofi_real)
+    hs = zero(vofi_real)
+    for i in 1:NDIM
+        hp += pdir[i] * h0[i]
+        hs += sdir[i] * h0[i]
+    end
     it0 = 1
     for i in 1:NDIM
         x1[i] = x0[i] + pdir[i] * h0[i]
@@ -297,5 +307,6 @@ function vofi_triarea(xa, xb, xc)
     cross = [u[2] * v[3] - u[3] * v[2],
              u[3] * v[1] - u[1] * v[3],
              u[1] * v[2] - u[2] * v[1]]
-    return 0.5 * sqrt(sum(abs2, cross))
+    cross_sq = cross[1]^2 + cross[2]^2 + cross[3]^2
+    return 0.5 * sqrt(cross_sq)
 end
