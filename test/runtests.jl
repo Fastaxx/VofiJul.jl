@@ -165,3 +165,9 @@ end
 @testset "3D Vofi test" begin
     include("vofi_test_3d.jl")
 end
+
+# -----------------------------
+
+@testset "vofi_get_cell_type 1D/2D/3D" begin
+    include("vofi_cell_type_tests.jl")
+end
