@@ -341,3 +341,117 @@ function vofi_get_volume(impl_func, par, x0, h0, base_ext, pdir, sdir, tdir,
     centroid[4] = surfer
     return volume
 end
+
+function vofi_get_hypervolume(impl_func, par, x0, h0, base, pdir, sdir, tdir, qdir,
+                              centroid, nex, npt, nsub, nptmp, nvis)
+    ax_p = axis_index(pdir)
+    ax_s = axis_index(sdir)
+    ax_t = axis_index(tdir)
+    ax_q = axis_index(qdir)
+    hp = axis_length(pdir, h0)
+    hs = axis_length(sdir, h0)
+    ht = axis_length(tdir, h0)
+    hq = axis_length(qdir, h0)
+    prod3 = hp * hs * ht
+    hm = maximum(h0)
+
+    xin3 = Vector{vofi_real}(undef, NDIM)
+    xin3[1] = x0[ax_p]
+    xin3[2] = x0[ax_s]
+    xin3[3] = x0[ax_t]
+    h3 = Vector{vofi_real}(undef, NDIM)
+    h3[1] = hp
+    h3[2] = hs
+    h3[3] = ht
+    xex3 = zeros(vofi_real, NDIM + 1)
+    nex_slice = zeros(Int, 2)
+    want_centroid = nex[1] > 0
+    want_surface = (length(nex) >= 2) && nex[2] > 0
+    if want_centroid
+        nex_slice[1] = 1
+    end
+    if want_surface
+        nex_slice[2] = 1
+    end
+    nvis_slice = zeros(Int, 2)
+
+    xbuf = similar(x0)
+    q_current = Ref(x0[ax_q])
+    slice_func = let impl_func = impl_func, par = par, x0 = x0,
+                     ax_p = ax_p, ax_s = ax_s, ax_t = ax_t, ax_q = ax_q,
+                     xbuf = xbuf, q_current = q_current
+        function (coords)
+            for i in 1:length(x0)
+                xbuf[i] = x0[i]
+            end
+            xbuf[ax_p] = coords[1]
+            xbuf[ax_s] = coords[2]
+            xbuf[ax_t] = coords[3]
+            xbuf[ax_q] = q_current[]
+            return call_integrand(impl_func, par, xbuf)
+        end
+    end
+
+    hypervolume = 0.0
+    xp_acc = xs_acc = xt_acc = xq_acc = 0.0
+    surface_acc = 0.0
+    q_origin = x0[ax_q]
+    max_nodes = NGLM
+
+    for ns in 1:nsub
+        dq = base[ns + 1] - base[ns]
+        if dq <= EPS_LOC
+            continue
+        end
+        mdpt = 0.5 * (base[ns + 1] + base[ns])
+        nquad = clamp(Int(floor(18 * dq / hm)) + 3, 3, 20)
+        if length(npt) >= 4 && 3 <= npt[4] <= 20
+            nquad = min(nquad, npt[4])
+        end
+        if nptmp > 0
+            nquad = min(nquad, nptmp)
+        end
+        nquad = min(nquad, max_nodes)
+        nodes = gauss_legendre_nodes(nquad)
+        weights = gauss_legendre_weights(nquad)
+        seg_vol = seg_xp = seg_xs = seg_xt = seg_xq = seg_surface = 0.0
+        for k in 1:nquad
+            xi = mdpt + 0.5 * dq * nodes[k]
+            xi = clamp(xi, 0.0, hq)
+            q_abs = q_origin + xi
+            q_current[] = q_abs
+            fill!(xex3, 0.0)
+            cc = vofi_get_cc(slice_func, nothing, xin3, h3, xex3, nex_slice, npt, nvis_slice, 3)
+            vol3 = cc * prod3
+            w = weights[k]
+            seg_vol += w * vol3
+            if want_centroid && vol3 > 0
+                seg_xp += w * vol3 * xex3[1]
+                seg_xs += w * vol3 * xex3[2]
+                seg_xt += w * vol3 * xex3[3]
+                seg_xq += w * vol3 * q_abs
+            end
+            if want_surface && nex_slice[2] > 0
+                seg_surface += w * xex3[end]
+            end
+        end
+        factor = 0.5 * dq
+        hypervolume += factor * seg_vol
+        if want_centroid
+            xp_acc += factor * seg_xp
+            xs_acc += factor * seg_xs
+            xt_acc += factor * seg_xt
+            xq_acc += factor * seg_xq
+        end
+        if want_surface
+            surface_acc += factor * seg_surface
+        end
+    end
+
+    centroid[1] = xp_acc
+    centroid[2] = xs_acc
+    centroid[3] = xt_acc
+    centroid[4] = xq_acc
+    centroid[5] = surface_acc
+    return hypervolume
+end

@@ -232,6 +232,45 @@ function vofi_get_limits_3D(impl_func, par, x0, h0, f0, xfsp, base, pdir, sdir, 
     return nsub
 end
 
+function vofi_get_limits_4D(impl_func, par, x0, h0, f0, xfsp::XFSP4D, base, pdir, sdir, tdir, qdir)
+    baser = base
+    qlen = axis_length(qdir, h0)
+    baser[1] = 0.0
+    cuts = Float64[0.0, qlen]
+    for edge in xfsp.edges
+        if edge.isc[1] == 1
+            sval = clamp(edge.sval, 0.0, qlen)
+            push!(cuts, sval)
+        end
+    end
+    sort!(cuts)
+    nsub = 0
+    last = 0.0
+    for idx in 2:length(cuts)
+        val = cuts[idx]
+        if val - last <= EPS_LOC
+            continue
+        end
+        if nsub == NSEG
+            baser[nsub + 1] = qlen
+            return nsub
+        end
+        nsub += 1
+        baser[nsub + 1] = val
+        last = val
+    end
+    if nsub == 0
+        nsub = 1
+        baser[2] = qlen
+    elseif abs(baser[nsub + 1] - qlen) > EPS_LOC
+        if nsub < NSEG
+            nsub += 1
+        end
+        baser[nsub + 1] = qlen
+    end
+    return nsub
+end
+
 function vofi_check_plane(impl_func, par, x0, h0, xfs_pt, base, pdir, sdir, nsect, ndire)
     baser = base
     basei = @MVector zeros(Int, NSEG + 1)  # Use pre-sized stack-allocated array

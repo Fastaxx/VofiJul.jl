@@ -404,6 +404,10 @@ function vofi_order_dirs_3D(impl_func, par, x0, h0, pdir, sdir, tdir, f0, xfsp)
         fyy = (fd[2, 3] + fd[2, 1] - 2 * fd[2, 2]) * have^2 / (hh[jp] * hh[jp])
         fxy = (fd[3, 3] - fd[3, 1] - fd[1, 3] + fd[1, 1]) * have^2 / (h0[js] * h0[jp])
         tmp = sqrt((fx^2 + fy^2)^3)
+        if !isfinite(tmp) || tmp < EPS_NOT0
+            curv[k] = 0.0
+            continue
+        end
         curv[k] = abs(fxx * fy^2 - 2 * fx * fy * fxy + fx^2 * fyy) / tmp
     end
     sumf_curv = zero(vofi_real)
@@ -438,4 +442,272 @@ function vofi_xyz2pst!(g0, jp, js, jt)
             g0[1, 2, 2], g0[2, 2, 1] = g0[2, 2, 1], g0[1, 2, 2]
         end
     end
+end
+
+function vofi_permute_hypercube!(f0::Array{T, 4}, perm::NTuple{4, Int}) where {T}
+    permuted = permutedims(f0, perm)
+    f0 .= permuted
+    return nothing
+end
+
+@inline sign_indicator(val::Real) = val > 0 ? 1 : val < 0 ? -1 : 0
+
+function reset_min_data4d!(md::MinData4D)
+    fill!(md.xval, 0.0)
+    md.fval = 0.0
+    md.sval = 0.0
+    md.span = 0.0
+    fill!(md.isc, 0)
+end
+
+function reset_xfsp4d!(xfsp::XFSP4D)
+    for md in xfsp.edges
+        reset_min_data4d!(md)
+    end
+    for md in xfsp.sectors
+        reset_min_data4d!(md)
+    end
+    xfsp.ipt = 0
+end
+
+@inline edge_index_4d(m, n, o) = 4 * m + 2 * n + o + 1
+
+function fill_base_point!(dest, x0, hvec, pdir, sdir, tdir, m, n, o)
+    for i in 1:4
+        dest[i] = x0[i] + m * pdir[i] * hvec[i] +
+                           n * sdir[i] * hvec[i] +
+                           o * tdir[i] * hvec[i]
+    end
+    return dest
+end
+
+function evaluate_point_along!(dest, base, dir, s)
+    for i in 1:length(base)
+        dest[i] = base[i] + s * dir[i]
+    end
+    return dest
+end
+
+function find_quaternary_bracket(impl_func, par, base, dir, hlen, fstart, fend)
+    samples = (0.25, 0.5, 0.75)
+    prev_s = 0.0
+    prev_f = fstart
+    x = similar(base)
+    for frac in samples
+        s = frac * hlen
+        evaluate_point_along!(x, base, dir, s)
+        fval = call_integrand(impl_func, par, x)
+        if prev_f * fval <= 0
+            return prev_s, s, prev_f, fval
+        end
+        prev_s = s
+        prev_f = fval
+    end
+    if prev_f * fend <= 0
+        return prev_s, hlen, prev_f, fend
+    end
+    return nothing
+end
+
+function bisection_zero_along_dir(impl_func, par, base, dir, sa, sb, fa, fb)
+    x = similar(base)
+    a = sa
+    b = sb
+    f_a = fa
+    f_b = fb
+    iter = 0
+    while iter < MAX_ITER_ROOT && abs(b - a) > EPS_ROOT
+        iter += 1
+        mid = 0.5 * (a + b)
+        evaluate_point_along!(x, base, dir, mid)
+        f_mid = call_integrand(impl_func, par, x)
+        if f_a * f_mid <= 0
+            b = mid
+            f_b = f_mid
+        else
+            a = mid
+            f_a = f_mid
+        end
+    end
+    s = 0.5 * (a + b)
+    evaluate_point_along!(x, base, dir, s)
+    fval = call_integrand(impl_func, par, x)
+    return s, fval, copy(x)
+end
+
+function vofi_populate_sector_volume_4D!(xfsp::XFSP4D, impl_func, par, x0, hvec, pdir, sdir, tdir, qdir, f0, fth)
+    base = zeros(vofi_real, 4)
+    for m in 0:1
+        data = xfsp.sectors[m + 1]
+        reset_min_data4d!(data)
+        np = 0
+        nm = 0
+        small = false
+        for n in 0:1, o in 0:1, q in 0:1
+            val = f0[m + 1, n + 1, o + 1, q + 1]
+            np += val > 0
+            nm += val < 0
+            small |= abs(val) <= fth
+        end
+        if (np == 0 || nm == 0) && !small
+            continue
+        end
+        fill_base_point!(base, x0, hvec, pdir, sdir, tdir, m, 0, 0)
+        for i in 1:4
+            offset = 0.5 * (sdir[i] * hvec[i] + tdir[i] * hvec[i] + qdir[i] * hvec[i])
+            data.xval[i] = base[i] + offset
+        end
+        data.fval = 0.0
+        data.isc[1] = 1
+        data.isc[m + 2] = 1
+    end
+end
+
+function vofi_populate_quaternary_edges_4D!(xfsp::XFSP4D, impl_func, par, x0, hvec,
+                                            pdir, sdir, tdir, qdir, f0, fth)
+    qlen = axis_length(qdir, hvec)
+    dir = zeros(vofi_real, 4)
+    for i in 1:4
+        dir[i] = qdir[i]
+    end
+    base = zeros(vofi_real, 4)
+    for m in 0:1
+        for n in 0:1
+            for o in 0:1
+                idx = edge_index_4d(m, n, o)
+                data = xfsp.edges[idx]
+                reset_min_data4d!(data)
+                fill_base_point!(base, x0, hvec, pdir, sdir, tdir, m, n, o)
+                data.span = qlen
+                data.xval .= base
+                fstart = f0[m + 1, n + 1, o + 1, 1]
+                fend = f0[m + 1, n + 1, o + 1, 2]
+                data.isc[3] = sign_indicator(fstart)
+                data.isc[4] = sign_indicator(fend)
+                if fstart * fend < 0
+                    data.isc[1] = 1
+                    data.isc[2] = -1
+                    continue
+                end
+                if abs(fstart) > fth && abs(fend) > fth
+                    continue
+                end
+                bracket = find_quaternary_bracket(impl_func, par, base, dir, qlen, fstart, fend)
+                if bracket === nothing
+                    continue
+                end
+                sa, sb, fa, fb = bracket
+                sroot, froot, xroot = bisection_zero_along_dir(impl_func, par, base, dir, sa, sb, fa, fb)
+                data.isc[1] = 1
+                data.isc[2] = 1
+                data.sval = sroot
+                data.fval = froot
+                data.xval .= xroot
+            end
+        end
+    end
+end
+
+function vofi_order_dirs_4D(impl_func, par, x0::Vector{vofi_real}, h0, pdir, sdir, tdir, qdir,
+                            f0::Array{vofi_real, 4}, xfsp::XFSP4D)
+    length(x0) == 4 || throw(ArgumentError("x0 must have length 4 for 4D cells"))
+    length(h0) == 4 || throw(ArgumentError("h0 must have length 4 for 4D cells"))
+    hvec = Vector{vofi_real}(undef, 4)
+    for i in 1:4
+        hvec[i] = vofi_real(h0[i])
+    end
+    hh = 0.5 .* hvec
+    MIN_GRAD = 1.0e-4
+    nmax0 = 16
+    np0 = 0
+    nm0 = 0
+    x = Vector{vofi_real}(undef, 4)
+    for i in 0:1, j in 0:1, k in 0:1, l in 0:1
+        x[1] = x0[1] + i * hvec[1]
+        x[2] = x0[2] + j * hvec[2]
+        x[3] = x0[3] + k * hvec[3]
+        x[4] = x0[4] + l * hvec[4]
+        val = call_integrand(impl_func, par, x)
+        f0[i + 1, j + 1, k + 1, l + 1] = val
+        if val > 0
+            np0 += 1
+        elseif val < 0
+            nm0 += 1
+        end
+    end
+
+    fgrad = zeros(vofi_real, 4)
+    fgrad[1] = 0.125 * ((f0[2, 2, 2, 2] + f0[2, 1, 2, 2] + f0[2, 2, 1, 2] + f0[2, 1, 1, 2] +
+                         f0[2, 2, 2, 1] + f0[2, 1, 2, 1] + f0[2, 2, 1, 1] + f0[2, 1, 1, 1]) -
+                        (f0[1, 2, 2, 2] + f0[1, 1, 2, 2] + f0[1, 2, 1, 2] + f0[1, 1, 1, 2] +
+                         f0[1, 2, 2, 1] + f0[1, 1, 2, 1] + f0[1, 2, 1, 1] + f0[1, 1, 1, 1])) / hvec[1]
+    fgrad[2] = 0.125 * ((f0[2, 2, 2, 2] + f0[1, 2, 2, 2] + f0[2, 2, 1, 2] + f0[1, 2, 1, 2] +
+                         f0[2, 2, 2, 1] + f0[1, 2, 2, 1] + f0[2, 2, 1, 1] + f0[1, 2, 1, 1]) -
+                        (f0[2, 1, 2, 2] + f0[1, 1, 2, 2] + f0[2, 1, 1, 2] + f0[1, 1, 1, 2] +
+                         f0[2, 1, 2, 1] + f0[1, 1, 2, 1] + f0[2, 1, 1, 1] + f0[1, 1, 1, 1])) / hvec[2]
+    fgrad[3] = 0.125 * ((f0[2, 2, 2, 2] + f0[2, 1, 2, 2] + f0[1, 2, 2, 2] + f0[1, 1, 2, 2] +
+                         f0[2, 2, 2, 1] + f0[2, 1, 2, 1] + f0[1, 2, 2, 1] + f0[1, 1, 2, 1]) -
+                        (f0[2, 2, 1, 2] + f0[2, 1, 1, 2] + f0[1, 2, 1, 2] + f0[1, 1, 1, 2] +
+                         f0[2, 2, 1, 1] + f0[2, 1, 1, 1] + f0[1, 2, 1, 1] + f0[1, 1, 1, 1])) / hvec[3]
+    fgrad[4] = 0.125 * ((f0[2, 2, 2, 2] + f0[2, 1, 2, 2] + f0[2, 2, 1, 2] + f0[2, 1, 1, 2] +
+                         f0[1, 2, 2, 2] + f0[1, 1, 2, 2] + f0[1, 2, 1, 2] + f0[1, 1, 1, 2]) -
+                        (f0[2, 2, 2, 1] + f0[2, 1, 2, 1] + f0[2, 2, 1, 1] + f0[2, 1, 1, 1] +
+                         f0[1, 2, 2, 1] + f0[1, 1, 2, 1] + f0[1, 2, 1, 1] + f0[1, 1, 1, 1])) / hvec[4]
+    grad_sq = zero(vofi_real)
+    for comp in fgrad
+        grad_sq += comp * comp
+    end
+    fgradmod = max(sqrt(grad_sq), MIN_GRAD)
+    fth = sqrt(3.0) * fgradmod * maximum(hh)
+
+    check_dir = -1
+    if np0 * nm0 == 0
+        n0 = zeros(Int, 2, 2, 2, 2)
+        np0 = 0
+        nm0 = 0
+        for i in 0:1, j in 0:1, k in 0:1, l in 0:1
+            val = abs(f0[i + 1, j + 1, k + 1, l + 1])
+            if val > fth
+                n0[i + 1, j + 1, k + 1, l + 1] = 0
+                if f0[i + 1, j + 1, k + 1, l + 1] < 0
+                    nm0 += 1
+                else
+                    np0 += 1
+                end
+            else
+                n0[i + 1, j + 1, k + 1, l + 1] = 1
+            end
+        end
+        if nm0 == nmax0
+            return 1
+        elseif np0 == nmax0
+            return 0
+        end
+        check_dir = vofi_check_boundary_hypersurface(impl_func, par, x0, hvec, f0, xfsp, n0)
+        if check_dir < 0
+            return nm0 > 0 ? 1 : 0
+        end
+    end
+
+    mags = abs.(fgrad)
+    order = sortperm(mags, rev = true)
+    fill!(pdir, 0.0)
+    fill!(sdir, 0.0)
+    fill!(tdir, 0.0)
+    fill!(qdir, 0.0)
+    pdir[order[1]] = 1.0
+    sdir[order[2]] = 1.0
+    tdir[order[3]] = 1.0
+    qdir[order[4]] = 1.0
+    vofi_permute_hypercube!(f0, (order[1], order[2], order[3], order[4]))
+
+    reset_xfsp4d!(xfsp)
+    vofi_populate_sector_volume_4D!(xfsp, impl_func, par, x0, hvec, pdir, sdir, tdir, qdir, f0, fth)
+    vofi_populate_quaternary_edges_4D!(xfsp, impl_func, par, x0, hvec, pdir, sdir, tdir, qdir, f0, fth)
+    have = (hvec[1] + hvec[2] + hvec[3] + hvec[4]) / 4
+    curvature_est = fgradmod / max(have, EPS_NOT0)
+    npt = clamp(Int(ceil(4 + curvature_est)), 4, NGLM)
+    xfsp.ipt = npt
+
+    return -1
 end

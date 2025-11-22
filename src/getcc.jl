@@ -107,7 +107,57 @@ function vofi_get_cc(impl_func, par, xin, h0, xex, nex, npt, nvis, ndim0)
             xex[4] = centroid[4]
         end
         return cc
+    elseif ndim0 == 4
+        # Use dynamic arrays for 4D (NDIM is 3; do not change it)
+        x0_4 = Vector{vofi_real}(undef, 4)
+        for i in 1:4
+            x0_4[i] = xin[i]
+        end
+        length(h0) >= 4 || throw(ArgumentError("h0 must provide 4 entries when ndim0 == 4"))
+        h4 = Vector{vofi_real}(undef, 4)
+        for i in 1:4
+            h4[i] = vofi_real(h0[i])
+        end
+        pdir = zeros(vofi_real, 4)
+        sdir = zeros(vofi_real, 4)
+        tdir = zeros(vofi_real, 4)
+        qdir = zeros(vofi_real, 4)
+        f04D = zeros(vofi_real, NSE, NSE, NSE, NSE)
+        xfsp = XFSP4D()
+
+        icc = vofi_order_dirs_4D(impl_func, par, x0_4, h4, pdir, sdir, tdir, qdir, f04D, xfsp)
+        if icc >= 0
+            cc = vofi_real(icc)
+            if icc > 0 && nex[1] > 0
+                for i in 1:4
+                    xex[i] = x0_4[i] + 0.5 * h4[i]
+                end
+            end
+            return cc
+        end
+
+        base = zeros(vofi_real, NSEG + 1)
+        nsub = vofi_get_limits_4D(impl_func, par, x0_4, h4, f04D, xfsp, base, pdir, sdir, tdir, qdir)
+        centroid = zeros(vofi_real, 5)
+        hypervolume = vofi_get_hypervolume(impl_func, par, x0_4, h4, base,
+                          pdir, sdir, tdir, qdir,
+                          centroid, nex, npt, nsub,
+                          xfsp.ipt, nvis)
+        cc = hypervolume / (h4[1] * h4[2] * h4[3] * h4[4])
+        if nex[1] > 0 && hypervolume > 0
+            for k in 1:4
+                centroid[k] /= hypervolume
+            end
+            for i in 1:4
+                xex[i] = x0_4[i] + centroid[1] * pdir[i] + centroid[2] * sdir[i] +
+                                 centroid[3] * tdir[i] + centroid[4] * qdir[i]
+            end
+        end
+        if nex[2] > 0
+            xex[5] = centroid[5]
+        end
+        return cc
     else
-        throw(ArgumentError("ndim0 must be 1, 2, or 3"))
+        throw(ArgumentError("ndim0 must be 1, 2, 3, or 4"))
     end
 end

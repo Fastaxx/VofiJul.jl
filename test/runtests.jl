@@ -165,6 +165,11 @@ end
 @testset "3D Vofi test" begin
     include("vofi_test_3d.jl")
 end
+
+# -----------------------------
+@testset "4D Vofi test" begin
+    include("vofi_test_4d.jl")
+end
 # Test 4D functionality
 function neg_func_4d(x, _)
     return -1.0

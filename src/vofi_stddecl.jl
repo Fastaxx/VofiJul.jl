@@ -85,6 +85,42 @@ function MinData(; xval = nothing,
     return MinData(xv, fval, sval, iscv, ipt)
 end
 
+mutable struct MinData4D
+    xval::Vector{vofi_real}
+    fval::vofi_real
+    sval::vofi_real
+    span::vofi_real
+    isc::Vector{vofi_int}
+    function MinData4D(xval, fval, sval, span, isc)
+        return new(xval, fval, sval, span, isc)
+    end
+end
+
+function MinData4D(; xval = nothing,
+                   fval = zero(vofi_real),
+                   sval = zero(vofi_real),
+                   span = zero(vofi_real),
+                   isc = nothing)
+    xv = xval === nothing ? zeros(vofi_real, 4) : copy(xval)
+    iscv = isc === nothing ? zeros(vofi_int, 4) : copy(isc)
+    return MinData4D(xv, fval, sval, span, iscv)
+end
+
+mutable struct XFSP4D
+    edges::Vector{MinData4D}
+    sectors::Vector{MinData4D}
+    ipt::vofi_int
+    function XFSP4D(edges, sectors, ipt)
+        return new(edges, sectors, ipt)
+    end
+end
+
+function XFSP4D()
+    edges = [MinData4D() for _ in 1:8]
+    sectors = [MinData4D() for _ in 1:2]
+    return XFSP4D(edges, sectors, 0)
+end
+
 mutable struct DirData
     ind1::vofi_int
     ind2::vofi_int
@@ -136,6 +172,15 @@ Base.copy!(dest::LenData, src::LenData) = begin
     dest.xt0 .= src.xt0
     dest.ht0 .= src.ht0
     dest.htp .= src.htp
+    dest
+end
+
+Base.copy!(dest::MinData4D, src::MinData4D) = begin
+    dest.xval .= src.xval
+    dest.fval = src.fval
+    dest.sval = src.sval
+    dest.span = src.span
+    dest.isc .= src.isc
     dest
 end
 
