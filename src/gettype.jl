@@ -1,4 +1,9 @@
 function vofi_get_cell_type(impl_func, par, xin, h0, ndim0)
+    if ndim0 == 4
+        # Handle 4D separately with dynamic arrays
+        return vofi_cell_type_4D(impl_func, par, collect(xin), collect(h0))
+    end
+    
     x0 = @MVector zeros(vofi_real, NDIM)
     xin_vec = collect(xin)
     for i in 1:min(length(xin_vec), NDIM)
@@ -15,7 +20,7 @@ function vofi_get_cell_type(impl_func, par, xin, h0, ndim0)
     elseif ndim0 == 3
         return vofi_cell_type_3D(impl_func, par, x0, hvec)
     else
-        throw(ArgumentError("ndim0 must be 1, 2, or 3"))
+        throw(ArgumentError("ndim0 must be 1, 2, 3, or 4"))
     end
 end
 
@@ -218,6 +223,102 @@ function vofi_cell_type_3D(impl_func, par, x0, h0)
         if icc < 0
             check_dir = vofi_check_boundary_surface(impl_func, par, x0, h0, f0,
                                                     xfsp, n0)
+        end
+        if check_dir < 0
+            icc = nm0 > 0 ? 1 : 0
+        end
+    end
+
+    return icc
+end
+
+function vofi_cell_type_4D(impl_func, par, x0::Vector{Float64}, h0::Vector{Float64})
+    # Use dynamic arrays for 4D since NDIM is 3
+    n0 = Array{vofi_int}(undef, 2, 2, 2, 2)
+    f0 = Array{vofi_real}(undef, 2, 2, 2, 2)
+    x1 = Vector{vofi_real}(undef, 4)
+    fgrad = Vector{vofi_real}(undef, 4)
+    np0 = 0
+    nm0 = 0
+    icc = -1
+    nmax0 = 16
+    MIN_GRAD = 1.0e-4
+
+    for i in 0:1
+        for j in 0:1
+            for k in 0:1
+                for l in 0:1
+                    x1[1] = x0[1] + i * h0[1]
+                    x1[2] = x0[2] + j * h0[2]
+                    x1[3] = x0[3] + k * h0[3]
+                    x1[4] = x0[4] + l * h0[4]
+                    f = call_integrand(impl_func, par, x1)
+                    f0[i + 1, j + 1, k + 1, l + 1] = f
+                    if f > 0.0
+                        np0 += 1
+                    elseif f < 0.0
+                        nm0 += 1
+                    end
+                end
+            end
+        end
+    end
+
+    # Gradient estimation (central differences)
+    fgrad[1] = 0.125 * ((f0[2, 2, 2, 2] + f0[2, 1, 2, 2] + f0[2, 2, 1, 2] + f0[2, 1, 1, 2] +
+                         f0[2, 2, 2, 1] + f0[2, 1, 2, 1] + f0[2, 2, 1, 1] + f0[2, 1, 1, 1]) -
+                        (f0[1, 2, 2, 2] + f0[1, 1, 2, 2] + f0[1, 2, 1, 2] + f0[1, 1, 1, 2] +
+                         f0[1, 2, 2, 1] + f0[1, 1, 2, 1] + f0[1, 2, 1, 1] + f0[1, 1, 1, 1])) / h0[1]
+    fgrad[2] = 0.125 * ((f0[2, 2, 2, 2] + f0[1, 2, 2, 2] + f0[2, 2, 1, 2] + f0[1, 2, 1, 2] +
+                         f0[2, 2, 2, 1] + f0[1, 2, 2, 1] + f0[2, 2, 1, 1] + f0[1, 2, 1, 1]) -
+                        (f0[2, 1, 2, 2] + f0[1, 1, 2, 2] + f0[2, 1, 1, 2] + f0[1, 1, 1, 2] +
+                         f0[2, 1, 2, 1] + f0[1, 1, 2, 1] + f0[2, 1, 1, 1] + f0[1, 1, 1, 1])) / h0[2]
+    fgrad[3] = 0.125 * ((f0[2, 2, 2, 2] + f0[2, 1, 2, 2] + f0[1, 2, 2, 2] + f0[1, 1, 2, 2] +
+                         f0[2, 2, 2, 1] + f0[2, 1, 2, 1] + f0[1, 2, 2, 1] + f0[1, 1, 2, 1]) -
+                        (f0[2, 2, 1, 2] + f0[2, 1, 1, 2] + f0[1, 2, 1, 2] + f0[1, 1, 1, 2] +
+                         f0[2, 2, 1, 1] + f0[2, 1, 1, 1] + f0[1, 2, 1, 1] + f0[1, 1, 1, 1])) / h0[3]
+    fgrad[4] = 0.125 * ((f0[2, 2, 2, 2] + f0[2, 1, 2, 2] + f0[2, 2, 1, 2] + f0[2, 1, 1, 2] +
+                         f0[1, 2, 2, 2] + f0[1, 1, 2, 2] + f0[1, 2, 1, 2] + f0[1, 1, 1, 2]) -
+                        (f0[2, 2, 2, 1] + f0[2, 1, 2, 1] + f0[2, 2, 1, 1] + f0[2, 1, 1, 1] +
+                         f0[1, 2, 2, 1] + f0[1, 1, 2, 1] + f0[1, 2, 1, 1] + f0[1, 1, 1, 1])) / h0[4]
+    fgradsq = fgrad[1]^2 + fgrad[2]^2 + fgrad[3]^2 + fgrad[4]^2
+    fgradmod = max(sqrt(fgradsq), MIN_GRAD)
+    hm = max(h0[1], h0[2])
+    hm = max(h0[3], hm)
+    hm = 0.5 * max(h0[4], hm)
+    fth = fgradmod * hm / sqrt(3.0)
+
+    if np0 * nm0 == 0
+        np0 = 0
+        nm0 = 0
+        for i in 0:1
+            for j in 0:1
+                for k in 0:1
+                    for l in 0:1
+                        f0mod = abs(f0[i + 1, j + 1, k + 1, l + 1])
+                        if f0mod > fth
+                            n0[i + 1, j + 1, k + 1, l + 1] = 0
+                            if f0[i + 1, j + 1, k + 1, l + 1] < 0.0
+                                nm0 += 1
+                            else
+                                np0 += 1
+                            end
+                        else
+                            n0[i + 1, j + 1, k + 1, l + 1] = 1
+                        end
+                    end
+                end
+            end
+        end
+        if nm0 == nmax0
+            icc = 1
+        elseif np0 == nmax0
+            icc = 0
+        end
+        xfsp = [Dict{Symbol, Any}() for _ in 1:4]  # Simplified storage for 4D
+        check_dir = -1
+        if icc < 0
+            check_dir = vofi_check_boundary_hypersurface(impl_func, par, x0, h0, f0, xfsp, n0)
         end
         if check_dir < 0
             icc = nm0 > 0 ? 1 : 0
